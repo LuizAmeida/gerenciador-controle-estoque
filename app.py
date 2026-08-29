@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import datetime
+import io
 
 # ==========================================
 # CONFIGURAÇÃO DA PÁGINA E BANCO DE DADOS
@@ -175,14 +176,30 @@ with st.sidebar:
     if uploaded_file is not None:
         if st.button("Processar Importação"):
             try:
-                imported_df = pd.read_csv(uploaded_file, sep=None, engine='python')
-                imported_df.columns = [c.lower().strip() for c in imported_df.columns]
+                # Leitura em bytes para tratar encoding com BOM e delimitadores comuns
+                bytes_data = uploaded_file.getvalue()
+                try:
+                    text_data = bytes_data.decode("utf-8-sig")
+                except UnicodeDecodeError:
+                    text_data = bytes_data.decode("latin-1")
+
+                # Identifica delimitador (ponto e vírgula ou vírgula)
+                first_line = text_data.splitlines()[0] if text_data.splitlines() else ""
+                delimiter = ";" if ";" in first_line else ","
+
+                imported_df = pd.read_csv(io.StringIO(text_data), sep=delimiter)
                 
-                # Mapeamento dinâmico de colunas
+                # Normalização e limpeza de caracteres especiais das colunas
+                imported_df.columns = [
+                    str(c).replace("\ufeff", "").strip().lower() 
+                    for c in imported_df.columns
+                ]
+                
+                # Mapeamento flexível de aliases
                 col_name = next((c for c in imported_df.columns if c in ["produto", "nome", "descricao", "descrição", "item"]), None)
-                col_sku = next((c for c in imported_df.columns if c in ["sku", "codigo", "código", "cod"]), None)
-                col_cat = next((c for c in imported_df.columns if c in ["categoria", "grupo", "setor"]), None)
-                col_qty = next((c for c in imported_df.columns if c in ["quantidade", "qtd", "estoque"]), None)
+                col_sku = next((c for c in imported_df.columns if c in ["sku", "codigo", "código", "cod", "cód"]), None)
+                col_cat = next((c for c in imported_df.columns if c in ["categoria", "grupo", "familia", "família", "setor"]), None)
+                col_qty = next((c for c in imported_df.columns if c in ["quantidade", "qtd", "qtde", "estoque", "saldo"]), None)
                 
                 if col_name:
                     count_imp = 0
@@ -191,13 +208,17 @@ with st.sidebar:
                         if p_name and p_name != "nan":
                             p_sku = str(row[col_sku]).strip() if col_sku and pd.notna(row[col_sku]) else ""
                             p_cat = str(row[col_cat]).strip() if col_cat and pd.notna(row[col_cat]) else ""
-                            p_qty = int(row[col_qty]) if col_qty and pd.notna(row[col_qty]) else 1
+                            try:
+                                p_qty = int(float(str(row[col_qty]).replace(",", "."))) if col_qty and pd.notna(row[col_qty]) else 1
+                            except (ValueError, TypeError):
+                                p_qty = 1
+                            
                             add_item(p_name, p_sku, p_cat, "Outro", p_qty, "A conferir", "", None, "", "Importado de planilha CSV")
                             count_imp += 1
-                    st.success(f"{count_imp} itens importados como 'A conferir'!")
+                    st.success(f"{count_imp} itens importados com sucesso como 'A conferir'!")
                     st.rerun()
                 else:
-                    st.error("Coluna de nome do produto não identificada no CSV.")
+                    st.error("Coluna de nome do produto não identificada. As colunas aceitas são: Produto, Nome, Descricao ou Item.")
             except Exception as e:
                 st.error(f"Erro ao processar CSV: {e}")
 
