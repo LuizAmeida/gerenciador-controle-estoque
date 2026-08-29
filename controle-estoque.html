@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Estoque</title>
+<style>
+  :root {
+    --bg: #1c1f22; --panel: #24282c; --panel-alt: #2b2f34; --border: #3a3f45;
+    --text: #edeeee; --text-muted: #9aa0a6; --accent: #f5b400; --accent-text: #1c1f22;
+    --st-conf: #6b7280; --st-disp: #3fa34d; --st-sep: #3b82c4; --st-falta: #d64545;
+    --st-sobra: #a855f7; --st-incompleto: #c99a1e; --st-avar: #e0793c; --st-assist: #2aa7a0;
+    --font-display: 'Segoe UI', 'Arial Narrow', Arial, sans-serif;
+    --font-mono: 'Consolas', 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); }
+  body { color: var(--text); font-family: var(--font-mono); padding: 20px 16px 60px; }
+  h1, h2, .display { font-family: var(--font-display); text-transform: uppercase; letter-spacing: .03em; }
+  .header { max-width: 1000px; margin: 0 auto 20px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 3px solid var(--accent); padding-bottom: 14px; }
+  .header h1 { font-size: 26px; font-weight: 700; margin: 0; }
+  .header .sub { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+  .header-badge { background: var(--accent); color: var(--accent-text); font-family: var(--font-display); font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 4px 10px; border-radius: 3px; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 18px; }
+  .stat-tile { background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--tc); border-radius: 4px; padding: 10px 12px; text-align: left; cursor: pointer; color: var(--text); font-family: inherit; }
+  .stat-tile:hover { background: var(--panel-alt); }
+  .stat-tile[data-active="1"] { background: var(--panel-alt); box-shadow: inset 0 0 0 1px var(--tc); }
+  .stat-count { display: block; font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1; }
+  .stat-label { display: block; font-size: 10px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .search-box { flex: 1; min-width: 180px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; }
+  .search-box input { background: transparent; border: none; outline: none; color: var(--text); font-family: inherit; font-size: 13px; width: 100%; }
+  #clear-filter-btn { font-size: 11px; color: var(--accent); background: none; border: none; cursor: pointer; text-decoration: underline; font-family: inherit; display: none; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 4px; padding: 9px 14px; font-family: var(--font-display); font-weight: 700; font-size: 13px; text-transform: uppercase; cursor: pointer; border: 1px solid transparent; }
+  .btn-accent { background: var(--accent); color: var(--accent-text); }
+  .btn-ghost { background: transparent; color: var(--text-muted); border-color: var(--border); }
+  .btn-ghost:hover { color: var(--text); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
+  .form-panel { padding: 16px; margin-bottom: 18px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+  .field-wide { grid-column: 1 / -1; }
+  .field input, .field select { background: var(--panel-alt); border: 1px solid var(--border); border-radius: 4px; padding: 8px 9px; color: var(--text); font-family: var(--font-mono); font-size: 13px; text-transform: none; }
+  .field input:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); }
+  .list { display: flex; flex-direction: column; gap: 8px; }
+  .item-card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .item-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; flex-wrap: wrap; }
+  .item-main { flex: 1; min-width: 180px; }
+  .item-name { font-weight: 600; font-size: 14px; }
+  .item-meta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+  .item-missing { color: var(--st-incompleto); font-size: 11px; margin-top: 3px; font-weight: 700; }
+  .item-qty { font-family: var(--font-display); font-size: 18px; font-weight: 700; min-width: 46px; text-align: center; }
+  .item-qty-label { font-size: 9px; color: var(--text-muted); text-align: center; display: block; text-transform: uppercase; }
+  .txt-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; padding: 6px 9px; border-radius: 4px; font-family: var(--font-display); font-size: 11px; text-transform: uppercase; }
+  .txt-btn:hover { color: var(--text); background: var(--panel-alt); }
+  .tag { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 16px; border-radius: 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: color-mix(in srgb, var(--tc) 20%, var(--panel)); color: var(--tc); border: 1px solid color-mix(in srgb, var(--tc) 55%, transparent); white-space: nowrap; cursor: pointer; }
+  .tag-hole { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--bg); border: 1px solid color-mix(in srgb, var(--tc) 55%, transparent); }
+  .status-menu { position: relative; }
+  .status-dropdown { position: absolute; top: calc(100% + 4px); right: 0; background: var(--panel-alt); border: 1px solid var(--border); border-radius: 6px; padding: 6px; z-index: 10; display: flex; flex-direction: column; gap: 3px; min-width: 170px; box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+  .status-option { text-align: left; background: none; border: none; padding: 7px 8px; border-radius: 4px; cursor: pointer; color: var(--text); font-family: inherit; font-size: 12px; display: flex; align-items: center; gap: 8px; width: 100%; }
+  .status-option:hover { background: var(--panel); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tc); flex-shrink: 0; }
+  .expand-panel { border-top: 1px solid var(--border); padding: 12px 14px; background: var(--panel-alt); }
+  .expand-panel h3 { margin: 0 0 8px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+  .hist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .hist-list li { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .hist-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tc); flex-shrink: 0; }
+  .hist-text { flex: 1; }
+  .hist-date { color: var(--text-muted); font-size: 11px; }
+  .hist-empty { color: var(--text-muted); font-size: 12px; margin: 0; }
+  .import-intro strong { font-family: var(--font-display); text-transform: uppercase; font-size: 13px; }
+  .import-intro p { margin: 6px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .import-error { color: var(--st-falta); font-size: 12px; margin: 10px 0 0; }
+  .import-success { color: var(--st-disp); font-size: 12px; margin: 10px 0 0; }
+  .save-warning { background: color-mix(in srgb, var(--st-falta) 20%, var(--panel)); border: 1px solid var(--st-falta); color: var(--st-falta); padding: 8px 12px; border-radius: 4px; font-size: 12px; margin-bottom: 14px; }
+  [data-group] { display: none; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>Controle de Estoque</h1>
+    <div class="sub">disponível · em separação · em falta · sobrando · incompleto · avariado · assistência técnica</div>
+  </div>
+  <span class="header-badge">Uso pessoal · funciona offline</span>
+</div>
+<div class="wrap">
+  <div id="message-area"></div>
+  <div id="stats-area" class="stats"></div>
+  <div class="toolbar">
+    <div class="search-box"><input id="search-input" placeholder="Buscar por nome, SKU ou categoria..." /></div>
+    <button id="clear-filter-btn">limpar filtro</button>
+    <button class="btn btn-ghost" id="btn-import">Importar CSV</button>
+    <button class="btn btn-ghost" id="btn-export">Exportar CSV</button>
+    <button class="btn btn-ghost" id="btn-sample">Carregar exemplos</button>
+    <button class="btn btn-ghost" id="btn-clear">Limpar tudo</button>
+    <button class="btn btn-accent" id="btn-new">+ Novo item</button>
+  </div>
+  <input type="file" id="file-input" accept=".csv" style="display:none">
+  <div id="panel-area"></div>
+  <div id="list-area"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- dados / constantes ---------- */
+var STATUS = {
+  conferir: { label: "A conferir", c: "var(--st-conf)" },
+  disponivel: { label: "Disponível", c: "var(--st-disp)" },
+  separacao: { label: "Em separação", c: "var(--st-sep)" },
+  falta: { label: "Em falta", c: "var(--st-falta)" },
+  sobrando: { label: "Sobrando", c: "var(--st-sobra)" },
+  incompleto: { label: "Incompleto", c: "var(--st-incompleto)" },
+  avariado: { label: "Avariado", c: "var(--st-avar)" },
+  assistencia: { label: "Assistência técnica", c: "var(--st-assist)" }
+};
+var STATUS_KEYS = Object.keys(STATUS);
+var TIPOS = { eletro: "Eletro", movel: "Móvel", outro: "Outro" };
+var STORAGE_KEY = "controle-estoque-items";
+
+var COLUMN_ALIASES = {
+  name: ["produto", "nome", "descricao", "descrição", "item"],
+  sku: ["sku", "codigo", "código", "cod", "cód"],
+  category: ["categoria", "grupo", "familia", "família", "setor"],
+  quantity: ["quantidade", "qtd", "qtde", "estoque", "saldo"]
+};
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function nowLabel() {
+  return new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+function fakeDate(offsetDays) {
+  var d = new Date(2026, 7, 28 - offsetDays, 8 + (offsetDays % 9), (offsetDays * 13) % 60);
+  return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+var SAMPLE_PRODUCTS = [
+  { name: "Smart TV 50\" 4K", tipo: "eletro", category: "Eletrônicos" },
+  { name: "Geladeira Frost Free 400L", tipo: "eletro", category: "Eletrodomésticos" },
+  { name: "Fogão 5 bocas", tipo: "eletro", category: "Eletrodomésticos" },
+  { name: "Micro-ondas 30L", tipo: "eletro", category: "Eletrodomésticos" },
+  { name: "Ar-condicionado Split 12000 BTU", tipo: "eletro", category: "Climatização" },
+  { name: "Máquina de lavar 12kg", tipo: "eletro", category: "Eletrodomésticos" },
+  { name: "Notebook 15\"", tipo: "eletro", category: "Informática" },
+  { name: "Som Torre Bluetooth", tipo: "eletro", category: "Eletrônicos" },
+  { name: "Smartphone Galaxy A54", tipo: "eletro", category: "Telefonia" },
+  { name: "Ventilador de Coluna", tipo: "eletro", category: "Eletrodomésticos" },
+  { name: "Guarda-roupa 6 portas", tipo: "movel", category: "Móveis" },
+  { name: "Conjunto Mesa 6 cadeiras", tipo: "movel", category: "Móveis" },
+  { name: "Sofá retrátil 3 lugares", tipo: "movel", category: "Móveis" },
+  { name: "Cama box casal", tipo: "movel", category: "Móveis" },
+  { name: "Estante home theater", tipo: "movel", category: "Móveis" },
+  { name: "Cômoda 5 gavetas", tipo: "movel", category: "Móveis" },
+  { name: "Rack para TV", tipo: "movel", category: "Móveis" },
+  { name: "Colchão Casal Molas", tipo: "outro", category: "Colchões" },
+  { name: "Colchão Solteiro Espuma", tipo: "outro", category: "Colchões" },
+  { name: "Travesseiro Ortopédico", tipo: "outro", category: "Cama e Banho" }
+];
+var PECAS_FALTANDO_OPCOES = [
+  "falta controle remoto", "falta cabo de força", "falta cabo HDMI e controle",
+  "falta manual e cabo de força", "falta base/suporte", "falta carregador"
+];
+
+function interleave(pools) {
+  var result = [], added = true;
+  while (added) {
+    added = false;
+    for (var i = 0; i < pools.length; i++) if (pools[i].length) { result.push(pools[i].shift()); added = true; }
+  }
+  return result;
+}
+
+function buildSampleItems() {
+  var pools = [
+    Array(15).fill("disponivel"), Array(6).fill("falta"), Array(9).fill("incompleto"),
+    Array(6).fill("avariado"), Array(4).fill("sobrando"), Array(4).fill("separacao"),
+    Array(4).fill("conferir"), Array(2).fill("assistencia")
+  ];
+  var statusPool = interleave(pools);
+  var items = [];
+  for (var i = 0; i < 50; i++) {
+    var produto = SAMPLE_PRODUCTS[i % SAMPLE_PRODUCTS.length];
+    var status = statusPool[i];
+    var qty = produto.tipo === "movel" ? 1 : (i % 4) + 1;
+    var pecasFaltando = "", volumesEsperados = null, volumesFaltando = "", note = "";
+
+    if (produto.tipo === "movel") {
+      volumesEsperados = 8 + (i % 8);
+      if (status === "incompleto") {
+        var faltam = 1 + (i % Math.max(1, volumesEsperados - 1));
+        var faltam2 = ((faltam + 4) % volumesEsperados) + 1;
+        volumesFaltando = faltam2 !== faltam ? (faltam + ", " + faltam2) : String(faltam);
+        note = "Faltam volumes: " + volumesFaltando + " de " + volumesEsperados;
+      }
+    }
+    if (produto.tipo === "eletro" && status === "incompleto") {
+      pecasFaltando = PECAS_FALTANDO_OPCOES[i % PECAS_FALTANDO_OPCOES.length];
+      note = pecasFaltando;
+    }
+    if (status === "avariado") note = "Avaria identificada na conferência física";
+    if (status === "assistencia") note = "Enviado para conserto na assistência técnica";
+    if (status === "falta") note = "Conferência física: quantidade menor que o esperado";
+    if (status === "sobrando") note = "Conferência física: quantidade maior que o esperado";
+    if (status === "conferir") note = "Importado da planilha do Auditor — aguardando conferência física";
+    if (status === "disponivel") note = "Conferência física concluída, sem divergência";
+    if (status === "separacao") note = "Reservado para envio à loja";
+
+    items.push({
+      id: uid(), name: produto.name, sku: "AT-" + String(i + 1).padStart(4, "0"),
+      category: produto.category, tipo: produto.tipo, quantity: qty, status: status,
+      pecasFaltando: pecasFaltando, volumesEsperados: volumesEsperados, volumesFaltando: volumesFaltando,
+      history: [{ status: status, date: fakeDate(50 - i), note: note }]
+    });
+  }
+  return items;
+}
+
+/* ---------- estado ---------- */
+var state = {
+  items: [], loaded: false, filter: null, query: "",
+  showForm: false, editingId: null, expandedId: null, statusEditId: null,
+  showImport: false, importMsg: null, storageBlocked: false
+};
+
+/* ---------- persistência ---------- */
+function loadInitial() {
+  var loadedItems = null;
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) loadedItems = parsed;
+    }
+  } catch (e) { state.storageBlocked = true; }
+  state.items = loadedItems || buildSampleItems();
+  state.loaded = true;
+}
+function persist(next) {
+  state.items = next;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+  catch (e) { state.storageBlocked = true; }
+  renderMessage(); renderStats(); renderList();
+}
+
+/* ---------- ações ---------- */
+function addItem(data) {
+  var entry = {
+    id: uid(), name: data.name, sku: data.sku, category: data.category,
+    quantity: data.quantity, status: data.status, tipo: data.tipo,
+    pecasFaltando: data.pecasFaltando || "", volumesEsperados: data.volumesEsperados,
+    volumesFaltando: data.volumesFaltando || "",
+    history: [{ status: data.status, date: nowLabel(), note: data.note || "Item cadastrado" }]
+  };
+  persist([entry].concat(state.items));
+  state.showForm = false; renderPanel();
+}
+function updateItem(id, data) {
+  var next = state.items.map(function (it) {
+    if (it.id !== id) return it;
+    var statusChanged = it.status !== data.status;
+    var hist = statusChanged ? it.history.concat([{ status: data.status, date: nowLabel(), note: data.note || "" }]) : it.history;
+    var copy = Object.assign({}, it);
+    copy.name = data.name; copy.sku = data.sku; copy.category = data.category;
+    copy.quantity = data.quantity; copy.status = data.status; copy.tipo = data.tipo;
+    copy.pecasFaltando = data.pecasFaltando || ""; copy.volumesEsperados = data.volumesEsperados;
+    copy.volumesFaltando = data.volumesFaltando || ""; copy.history = hist;
+    return copy;
+  });
+  persist(next);
+  state.editingId = null; renderPanel();
+}
+function quickStatus(id, status) {
+  var next = state.items.map(function (it) {
+    if (it.id !== id || it.status === status) return it;
+    var copy = Object.assign({}, it);
+    copy.status = status;
+    copy.history = it.history.concat([{ status: status, date: nowLabel(), note: "Alteração rápida" }]);
+    return copy;
+  });
+  state.statusEditId = null;
+  persist(next);
+}
+function removeItem(id) {
+  persist(state.items.filter(function (it) { return it.id !== id; }));
+}
+
+/* ---------- CSV ---------- */
+function csvEscape(v) {
+  v = String(v == null ? "" : v);
+  if (/[;"\n]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+  return v;
+}
+function exportarCSV() {
+  var cols = ["Produto", "SKU", "Categoria", "Tipo", "Quantidade", "Status", "Pecas faltando", "Volumes esperados", "Volumes faltando"];
+  var lines = [cols.join(";")];
+  state.items.forEach(function (it) {
+    lines.push([
+      it.name, it.sku, it.category, TIPOS[it.tipo] || "", it.quantity,
+      (STATUS[it.status] || {}).label || it.status, it.pecasFaltando || "",
+      it.volumesEsperados == null ? "" : it.volumesEsperados, it.volumesFaltando || ""
+    ].map(csvEscape).join(";"));
+  });
+  var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  var hoje = new Date().toISOString().slice(0, 10);
+  a.href = url; a.download = "estoque-" + hoje + ".csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function parseCSVLine(line, delim) {
+  var out = [], cur = "", inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQuotes = false; }
+      else cur += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === delim) { out.push(cur); cur = ""; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+function findColumn(headerRow, keys) {
+  var normalized = headerRow.map(function (h) { return (h || "").toString().trim().toLowerCase(); });
+  for (var k = 0; k < keys.length; k++) { var idx = normalized.indexOf(keys[k]); if (idx !== -1) return idx; }
+  return -1;
+}
+function handleImportFile(file) {
+  state.importMsg = null;
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      var text = e.target.result.replace(/^\uFEFF/, "");
+      var lines = text.split(/\r\n|\n|\r/).filter(function (l) { return l.trim() !== ""; });
+      if (!lines.length) { state.importMsg = { type: "error", text: "O arquivo está vazio." }; renderPanel(); return; }
+      var delim = lines[0].indexOf(";") !== -1 ? ";" : ",";
+      var header = parseCSVLine(lines[0], delim);
+      var nameIdx = findColumn(header, COLUMN_ALIASES.name);
+      var skuIdx = findColumn(header, COLUMN_ALIASES.sku);
+      var catIdx = findColumn(header, COLUMN_ALIASES.category);
+      var qtyIdx = findColumn(header, COLUMN_ALIASES.quantity);
+      if (nameIdx === -1) {
+        state.importMsg = { type: "error", text: 'Não encontrei coluna de produto/nome. Renomeie a coluna para "Produto" ou "Nome".' };
+        renderPanel(); return;
+      }
+      var novos = [];
+      for (var i = 1; i < lines.length; i++) {
+        var row = parseCSVLine(lines[i], delim);
+        var name = (row[nameIdx] || "").trim();
+        if (!name) continue;
+        novos.push({
+          id: uid(), name: name,
+          sku: skuIdx !== -1 ? (row[skuIdx] || "").trim() : "",
+          category: catIdx !== -1 ? (row[catIdx] || "").trim() : "",
+          quantity: qtyIdx !== -1 ? (Number(row[qtyIdx]) || 0) : 0,
+          status: "conferir", tipo: "outro", pecasFaltando: "", volumesEsperados: null, volumesFaltando: "",
+          history: [{ status: "conferir", date: nowLabel(), note: "Importado da planilha — aguardando conferência física" }]
+        });
+      }
+      if (!novos.length) { state.importMsg = { type: "error", text: "Nenhuma linha válida encontrada." }; renderPanel(); return; }
+      persist(novos.concat(state.items));
+      var faltando = [skuIdx === -1 && "SKU", catIdx === -1 && "categoria", qtyIdx === -1 && "quantidade"].filter(Boolean);
+      state.importMsg = { type: "success", text: novos.length + (novos.length === 1 ? " item importado" : " itens importados") + ' como "a conferir".' + (faltando.length ? " Não encontrei coluna de " + faltando.join(", ") + " — edite manualmente se precisar." : "") };
+      renderPanel();
+    } catch (err) {
+      state.importMsg = { type: "error", text: "Não consegui ler esse arquivo. Confirme que é um .csv válido." };
+      renderPanel();
+    }
+  };
+  reader.readAsText(file, "UTF-8");
+}
+
+/* ---------- helpers de filtro ---------- */
+function getCounts() {
+  var c = {}; STATUS_KEYS.forEach(function (k) { c[k] = 0; });
+  state.items.forEach(function (it) { c[it.status] = (c[it.status] || 0) + 1; });
+  return c;
+}
+function getFiltered() {
+  return state.items.filter(function (it) {
+    if (state.filter && it.status !== state.filter) return false;
+    if (state.query.trim()) {
+      var q = state.query.toLowerCase();
+      return it.name.toLowerCase().indexOf(q) !== -1 || it.sku.toLowerCase().indexOf(q) !== -1 || it.category.toLowerCase().indexOf(q) !== -1;
+    }
+    return true;
+  });
+}
+
+/* ---------- render ---------- */
+function renderMessage() {
+  var el = document.getElementById("message-area");
+  el.innerHTML = state.storageBlocked
+    ? '<div class="save-warning">Seu navegador está bloqueando o salvamento automático neste local (comum quando o arquivo é aberto de dentro de uma pasta temporária/zip). O app funciona normalmente nesta sessão, mas os dados não vão continuar salvos ao fechar. Mova o arquivo .html para uma pasta normal (ex: Downloads ou Área de Trabalho) e abra por lá.</div>'
+    : "";
+}
+function renderStats() {
+  var counts = getCounts();
+  var el = document.getElementById("stats-area");
+  el.innerHTML = STATUS_KEYS.map(function (k) {
+    var s = STATUS[k];
+    return '<button class="stat-tile" data-status="' + k + '" data-active="' + (state.filter === k ? "1" : "0") + '" style="--tc:' + s.c + '">' +
+      '<span class="stat-count">' + counts[k] + '</span><span class="stat-label">' + esc(s.label) + '</span></button>';
+  }).join("");
+  Array.prototype.forEach.call(el.querySelectorAll(".stat-tile"), function (btn) {
+    btn.addEventListener("click", function () {
+      var k = btn.getAttribute("data-status");
+      state.filter = state.filter === k ? null : k;
+      document.getElementById("clear-filter-btn").style.display = state.filter ? "inline" : "none";
+      renderStats(); renderList();
+    });
+  });
+}
+function tagHtml(status) {
+  var s = STATUS[status] || STATUS.disponivel;
+  return '<span class="tag" data-action="toggle-status-menu" style="--tc:' + s.c + '"><span class="tag-hole"></span>' + esc(s.label) + '</span>';
+}
+function historyHtml(history) {
+  if (!history || !history.length) return '<p class="hist-empty">Sem movimentações registradas.</p>';
+  var rev = history.slice().reverse();
+  return '<ul class="hist-list">' + rev.map(function (h) {
+    var s = STATUS[h.status] || {};
+    return '<li><span class="hist-dot" style="--tc:' + (s.c || "#888") + '"></span>' +
+      '<span class="hist-text"><strong>' + esc(s.label || h.status) + '</strong>' + (h.note ? " — " + esc(h.note) : "") + '</span>' +
+      '<span class="hist-date">' + esc(h.date) + '</span></li>';
+  }).join("") + '</ul>';
+}
+function renderList() {
+  var el = document.getElementById("list-area");
+  var filtered = getFiltered();
+  if (state.loaded && filtered.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>' +
+      (state.items.length === 0 ? "Nenhum item cadastrado ainda. Adicione o primeiro item do estoque." : "Nenhum item corresponde à busca ou filtro atual.") +
+      '</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="list">' + filtered.map(function (it) {
+    var missing = "";
+    if (it.tipo === "eletro" && it.pecasFaltando) missing = '<div class="item-missing">falta: ' + esc(it.pecasFaltando) + '</div>';
+    if (it.tipo === "movel" && (it.volumesFaltando || it.volumesEsperados)) {
+      missing = '<div class="item-missing">' + (it.volumesEsperados ? it.volumesEsperados + " volumes esperados" : "") +
+        (it.volumesFaltando ? " · faltam: " + esc(it.volumesFaltando) : "") + '</div>';
+    }
+    var dropdown = state.statusEditId === it.id
+      ? '<div class="status-dropdown">' + STATUS_KEYS.map(function (k) {
+          return '<button class="status-option" data-action="quick-status" data-id="' + it.id + '" data-status="' + k + '"><span class="status-dot" style="--tc:' + STATUS[k].c + '"></span>' + esc(STATUS[k].label) + '</button>';
+        }).join("") + '</div>'
+      : "";
+    var expandOpen = state.expandedId === it.id;
+    return '<div class="item-card">' +
+      '<div class="item-row">' +
+        '<div class="item-main"><div class="item-name">' + esc(it.name) + '</div>' +
+        '<div class="item-meta">' + esc(it.sku || "sem SKU") + (it.category ? " · " + esc(it.category) : "") + (it.tipo && it.tipo !== "outro" ? " · " + TIPOS[it.tipo] : "") + '</div>' +
+        missing + '</div>' +
+        '<div><span class="item-qty">' + it.quantity + '</span><span class="item-qty-label">unid.</span></div>' +
+        '<div class="status-menu" data-id="' + it.id + '">' + tagHtml(it.status) + dropdown + '</div>' +
+        '<button class="txt-btn" data-action="edit" data-id="' + it.id + '">Editar</button>' +
+        '<button class="txt-btn" data-action="toggle-expand" data-id="' + it.id + '">' + (expandOpen ? "▴ Hist." : "▾ Hist.") + '</button>' +
+        '<button class="txt-btn" data-action="delete" data-id="' + it.id + '">Excluir</button>' +
+      '</div>' +
+      (expandOpen ? '<div class="expand-panel"><h3>Histórico de movimentação</h3>' + historyHtml(it.history) + '</div>' : '') +
+    '</div>';
+  }).join("") + '</div>';
+
+  bindListEvents();
+}
+function bindListEvents() {
+  var el = document.getElementById("list-area");
+  Array.prototype.forEach.call(el.querySelectorAll('.status-menu'), function (menu) {
+    var tag = menu.querySelector('[data-action="toggle-status-menu"]');
+    var id = menu.getAttribute("data-id");
+    tag.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      state.statusEditId = state.statusEditId === id ? null : id;
+      renderList();
+    });
+  });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-action="quick-status"]'), function (btn) {
+    btn.addEventListener("click", function () { quickStatus(btn.getAttribute("data-id"), btn.getAttribute("data-status")); });
+  });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-action="edit"]'), function (btn) {
+    btn.addEventListener("click", function () {
+      state.editingId = state.editingId === btn.getAttribute("data-id") ? null : btn.getAttribute("data-id");
+      state.showForm = false; state.showImport = false;
+      renderPanel();
+    });
+  });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-action="toggle-expand"]'), function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-id");
+      state.expandedId = state.expandedId === id ? null : id;
+      renderList();
+    });
+  });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-action="delete"]'), function (btn) {
+    btn.addEventListener("click", function () { removeItem(btn.getAttribute("data-id")); });
+  });
+  document.addEventListener("click", function closeMenus(ev) {
+    if (state.statusEditId && !ev.target.closest(".status-menu")) { state.statusEditId = null; renderList(); }
+  });
+}
+
+function itemFormHtml(item) {
+  var tipo = item ? item.tipo : "outro";
+  return '<form class="panel form-panel" id="item-form">' +
+    '<div class="form-grid">' +
+      '<label class="field"><span>Produto</span><input name="name" value="' + esc(item ? item.name : "") + '" placeholder="Ex: Guarda-roupa 6 portas" required></label>' +
+      '<label class="field"><span>SKU / código</span><input name="sku" value="' + esc(item ? item.sku : "") + '" placeholder="Ex: MOV-1029"></label>' +
+      '<label class="field"><span>Categoria</span><input name="category" value="' + esc(item ? item.category : "") + '" placeholder="Ex: Móveis"></label>' +
+      '<label class="field"><span>Tipo</span><select name="tipo" id="form-tipo">' +
+        Object.keys(TIPOS).map(function (k) { return '<option value="' + k + '"' + (tipo === k ? " selected" : "") + '>' + TIPOS[k] + '</option>'; }).join("") +
+      '</select></label>' +
+      '<label class="field"><span>Quantidade</span><input type="number" min="0" name="quantity" value="' + (item ? item.quantity : 1) + '"></label>' +
+      '<label class="field"><span>Status</span><select name="status">' +
+        STATUS_KEYS.map(function (k) { return '<option value="' + k + '"' + ((item ? item.status : "disponivel") === k ? " selected" : "") + '>' + STATUS[k].label + '</option>'; }).join("") +
+      '</select></label>' +
+      '<label class="field field-wide" data-group="eletro"><span>Peças/acessórios faltando (opcional)</span><input name="pecasFaltando" value="' + esc(item ? item.pecasFaltando : "") + '" placeholder="Ex: falta controle remoto e cabo HDMI"></label>' +
+      '<label class="field" data-group="movel"><span>Volumes esperados</span><input type="number" min="0" name="volumesEsperados" value="' + (item && item.volumesEsperados != null ? item.volumesEsperados : "") + '" placeholder="Ex: 12"></label>' +
+      '<label class="field field-wide" data-group="movel"><span>Volumes faltando (números, opcional)</span><input name="volumesFaltando" value="' + esc(item ? item.volumesFaltando : "") + '" placeholder="Ex: 3, 7"></label>' +
+      '<label class="field field-wide"><span>Observação ' + (item ? "(registrada no histórico)" : "(opcional)") + '</span><input name="note" placeholder="Ex: Recebido do fornecedor X"></label>' +
+    '</div>' +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-ghost" id="form-cancel">Cancelar</button>' +
+      '<button type="submit" class="btn btn-accent">&#10003; ' + (item ? "Salvar alterações" : "Adicionar item") + '</button>' +
+    '</div>' +
+  '</form>';
+}
+function updateFormGroups(tipoValue) {
+  var panel = document.getElementById("panel-area");
+  Array.prototype.forEach.call(panel.querySelectorAll("[data-group]"), function (g) {
+    g.style.display = g.getAttribute("data-group") === tipoValue ? "flex" : "none";
+  });
+}
+function renderPanel() {
+  var el = document.getElementById("panel-area");
+  var editingItem = state.editingId ? state.items.find(function (it) { return it.id === state.editingId; }) : null;
+
+  if (state.showImport) {
+    el.innerHTML = '<div class="panel form-panel">' +
+      '<div class="import-intro"><strong>Importar estoque (CSV)</strong>' +
+      '<p>No Excel: Arquivo → Salvar Como → CSV (separado por ponto e vírgula). Colunas reconhecidas: Produto/Nome, SKU/Código, Categoria, Quantidade. Os itens entram como "a conferir".</p></div>' +
+      '<div class="form-actions" style="justify-content:flex-start;margin-top:12px">' +
+      '<button type="button" class="btn btn-accent" id="pick-file">Escolher arquivo .csv</button>' +
+      '<button type="button" class="btn btn-ghost" id="close-import">Fechar</button></div>' +
+      (state.importMsg ? '<p class="import-' + state.importMsg.type + '">' + esc(state.importMsg.text) + '</p>' : '') +
+      '</div>';
+    document.getElementById("pick-file").addEventListener("click", function () { document.getElementById("file-input").click(); });
+    document.getElementById("close-import").addEventListener("click", function () { state.showImport = false; renderPanel(); });
+    return;
+  }
+
+  if (state.showForm || editingItem) {
+    el.innerHTML = itemFormHtml(editingItem);
+    var tipoSelect = document.getElementById("form-tipo");
+    updateFormGroups(tipoSelect.value);
+    tipoSelect.addEventListener("change", function () { updateFormGroups(tipoSelect.value); });
+    document.getElementById("form-cancel").addEventListener("click", function () {
+      state.showForm = false; state.editingId = null; renderPanel();
+    });
+    document.getElementById("item-form").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var fd = new FormData(ev.target);
+      var tipo = fd.get("tipo");
+      var data = {
+        name: (fd.get("name") || "").trim(), sku: (fd.get("sku") || "").trim(),
+        category: (fd.get("category") || "").trim(), quantity: Number(fd.get("quantity")) || 0,
+        status: fd.get("status"), tipo: tipo,
+        pecasFaltando: tipo === "eletro" ? (fd.get("pecasFaltando") || "").trim() : "",
+        volumesEsperados: tipo === "movel" && fd.get("volumesEsperados") ? Number(fd.get("volumesEsperados")) : null,
+        volumesFaltando: tipo === "movel" ? (fd.get("volumesFaltando") || "").trim() : "",
+        note: (fd.get("note") || "").trim()
+      };
+      if (!data.name) return;
+      if (editingItem) updateItem(editingItem.id, data); else addItem(data);
+    });
+    return;
+  }
+
+  el.innerHTML = "";
+}
+
+/* ---------- inicialização ---------- */
+function init() {
+  loadInitial();
+  renderMessage();
+  renderStats();
+  renderList();
+
+  document.getElementById("search-input").addEventListener("input", function (e) {
+    state.query = e.target.value; renderList();
+  });
+  document.getElementById("clear-filter-btn").addEventListener("click", function () {
+    state.filter = null; this.style.display = "none"; renderStats(); renderList();
+  });
+  document.getElementById("btn-new").addEventListener("click", function () {
+    state.showForm = !state.showForm; state.editingId = null; state.showImport = false; renderPanel();
+  });
+  document.getElementById("btn-import").addEventListener("click", function () {
+    state.showImport = !state.showImport; state.showForm = false; state.editingId = null; state.importMsg = null; renderPanel();
+  });
+  document.getElementById("btn-export").addEventListener("click", exportarCSV);
+  document.getElementById("btn-sample").addEventListener("click", function () {
+    if (window.confirm("Isso vai substituir os itens atuais pelos 50 de exemplo. Continuar?")) persist(buildSampleItems());
+  });
+  document.getElementById("btn-clear").addEventListener("click", function () {
+    if (window.confirm("Isso vai apagar todos os itens. Continuar?")) persist([]);
+  });
+  document.getElementById("file-input").addEventListener("change", function (e) {
+    if (e.target.files && e.target.files[0]) handleImportFile(e.target.files[0]);
+    e.target.value = "";
+  });
+}
+init();
+</script>
+</body>
+</html>
