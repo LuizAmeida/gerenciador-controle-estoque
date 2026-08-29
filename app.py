@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import datetime
-import csv
 import io
 
 # ==========================================
@@ -15,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Estilização Dark Industrial completa
 st.markdown("""<style>
 .stApp {
     background-color: #1c1f22;
@@ -259,7 +257,7 @@ st.markdown(header_html, unsafe_allow_html=True)
 
 df_items = get_items_df()
 
-# Grid de Métricas (8 status perfeitamente distribuídos)
+# Grid de Métricas
 tiles = []
 for st_name, meta in STATUS_CONFIG.items():
     count = len(df_items[df_items["status"] == st_name]) if not df_items.empty else 0
@@ -330,94 +328,70 @@ with st.sidebar:
                 except UnicodeDecodeError:
                     text_data = bytes_data.decode("latin-1")
 
-                # Limpeza e separação de linhas
-                text_clean = text_data.replace("\ufeff", "").strip()
-                lines = [l for l in text_clean.splitlines() if l.strip()]
+                # Limpeza rigorosa de quebras de linha e espaços
+                lines = [l.strip() for l in text_data.splitlines() if l.strip()]
                 
-                if not lines:
-                    st.error("O arquivo CSV está vazio.")
+                if len(lines) < 2:
+                    st.error("O arquivo CSV precisa ter ao menos o cabeçalho e 1 linha de dados.")
                 else:
                     # Detecta delimitador da primeira linha
-                    sep = ';' if ';' in lines[0] else (',' if ',' in lines[0] else '\t')
-                    reader = csv.reader(lines, delimiter=sep)
-                    rows = list(reader)
+                    delimiter = ';' if ';' in lines[0] else (',' if ',' in lines[0] else '\t')
                     
-                    if len(rows) < 2:
-                        st.error("Nenhuma linha de dados encontrada no arquivo CSV.")
-                    else:
-                        header = [c.strip().lower() for c in rows[0]]
+                    total_units_created = 0
+                    for line_str in lines[1:]:
+                        # Divide rigorosamente por delimitador
+                        parts = [p.strip().replace('"', '') for p in line_str.split(delimiter)]
+                        if not parts or not parts[0]:
+                            continue
                         
-                        # Mapeamento por índice de coluna (ou fallback posicional)
-                        def find_idx(keywords, default_pos):
-                            for i, col in enumerate(header):
-                                if any(k in col for k in keywords):
-                                    return i
-                            return default_pos if default_pos < len(header) else -1
+                        p_name = parts[0]
+                        if not p_name or p_name.lower() == "nan":
+                            continue
 
-                        idx_name = find_idx(["prod", "nome", "desc", "item"], 0)
-                        idx_brand = find_idx(["marc", "fabr", "brand"], 1)
-                        idx_sku = find_idx(["sku", "cod"], 2)
-                        idx_cat = find_idx(["cat", "grup", "fam", "setor"], 3)
-                        idx_tipo = find_idx(["tipo"], 4)
-                        idx_vesp = find_idx(["vol_esp", "volumes_esperados", "volumes", "vol"], 5)
-                        idx_pfalt = find_idx(["pecas", "peças", "acess"], 6)
-                        idx_vfalt = find_idx(["vol_falt", "volumes_faltando"], 7)
+                        p_brand = parts[1] if len(parts) > 1 else ""
+                        p_sku = parts[2] if len(parts) > 2 else ""
+                        p_cat = parts[3] if len(parts) > 3 else ""
+                        
+                        # Tipo
+                        p_tipo_raw = parts[4].capitalize() if len(parts) > 4 and parts[4] else ""
+                        if p_tipo_raw in TIPOS_LIST:
+                            p_tipo = p_tipo_raw
+                        elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
+                            p_tipo = "Eletro"
+                        else:
+                            p_tipo = "Móvel"
 
-                        total_units_created = 0
-                        for row in rows[1:]:
-                            if not row or not any(row):
-                                continue
-                            
-                            p_name = row[idx_name].strip() if idx_name != -1 and idx_name < len(row) else ""
-                            if not p_name or p_name.lower() == "nan":
-                                continue
+                        # Volumes esperados de fábrica
+                        if p_tipo == "Eletro":
+                            v_esp = 1
+                        else:
+                            v_raw = parts[5] if len(parts) > 5 else ""
+                            try:
+                                v_esp = int(float(v_raw)) if v_raw else 4
+                            except:
+                                v_esp = 4
 
-                            p_brand = row[idx_brand].strip() if idx_brand != -1 and idx_brand < len(row) else ""
-                            p_sku = row[idx_sku].strip() if idx_sku != -1 and idx_sku < len(row) else ""
-                            p_cat = row[idx_cat].strip() if idx_cat != -1 and idx_cat < len(row) else ""
-                            
-                            # Tipo
-                            p_tipo_raw = row[idx_tipo].strip().capitalize() if idx_tipo != -1 and idx_tipo < len(row) else ""
-                            if p_tipo_raw in TIPOS_LIST:
-                                p_tipo = p_tipo_raw
-                            elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
-                                p_tipo = "Eletro"
-                            else:
-                                p_tipo = "Móvel"
+                        # Peças ou volumes faltando (se vierem na planilha)
+                        p_falt = parts[6] if len(parts) > 6 else ""
+                        v_falt = parts[7] if len(parts) > 7 else ""
 
-                            # Volumes esperados
-                            v_esp = None
-                            if p_tipo == "Eletro":
-                                v_esp = 1
-                            else:
-                                v_raw = row[idx_vesp].strip() if idx_vesp != -1 and idx_vesp < len(row) else ""
-                                try:
-                                    v_esp = int(float(v_raw)) if v_raw else 4
-                                except:
-                                    v_esp = 4
+                        # REGRA PRINCIPAL: Todo item importado entra como "A conferir"
+                        add_single_unit(
+                            name=p_name,
+                            brand=p_brand,
+                            sku=p_sku,
+                            category=p_cat,
+                            tipo=p_tipo,
+                            status="A conferir",
+                            pecas_faltando=p_falt if p_tipo == "Eletro" else "",
+                            volumes_esperados=v_esp,
+                            volumes_faltando=v_falt if p_tipo == "Móvel" else "",
+                            note="Importado da planilha do Auditor — aguardando conferência física"
+                        )
+                        total_units_created += 1
 
-                            p_falt = row[idx_pfalt].strip() if idx_pfalt != -1 and idx_pfalt < len(row) else ""
-                            v_falt = row[idx_vfalt].strip() if idx_vfalt != -1 and idx_vfalt < len(row) else ""
-
-                            # Status
-                            init_status = "Incompleto" if (p_falt or v_falt) else "A conferir"
-
-                            add_single_unit(
-                                name=p_name,
-                                brand=p_brand,
-                                sku=p_sku,
-                                category=p_cat,
-                                tipo=p_tipo,
-                                status=init_status,
-                                pecas_faltando=p_falt if p_tipo == "Eletro" else "",
-                                volumes_esperados=v_esp,
-                                volumes_faltando=v_falt if p_tipo == "Móvel" else "",
-                                note="Importado da planilha do Auditor"
-                            )
-                            total_units_created += 1
-
-                        st.success(f"{total_units_created} unidades importadas com sucesso!")
-                        st.rerun()
+                    st.success(f"{total_units_created} unidades importadas como 'A conferir' com sucesso!")
+                    st.rerun()
 
             except Exception as e:
                 st.error(f"Erro ao processar CSV: {e}")
@@ -485,10 +459,11 @@ else:
                 detalhes = f"**ID:** `#{row['id']}` | **SKU:** {row['sku'] or 'S/N'} | **Categoria:** {row['category'] or 'Geral'}"
                 st.write(detalhes)
                 
+                # Exibição de pendências se houver
                 if row["tipo"] == "Eletro" and row["pecas_faltando"]:
                     st.warning(f"⚠️ **Peças/Acessórios Faltando:** {row['pecas_faltando']}")
                 elif row["tipo"] == "Móvel" and (row["volumes_faltando"] or (row["volumes_esperados"] and row["volumes_esperados"] > 1)):
-                    msg = f"⚠️ **Volumes do Móvel/Base:** {row['volumes_esperados']} volumes de fábrica"
+                    msg = f"⚠️ **Volumes de Fábrica:** {row['volumes_esperados']} volumes"
                     if row["volumes_faltando"]:
                         msg += f" · **Faltando:** {row['volumes_faltando']}"
                     st.warning(msg)
