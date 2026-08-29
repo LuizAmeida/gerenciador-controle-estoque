@@ -270,7 +270,7 @@ with st.sidebar:
     
     with st.expander("➕ Cadastrar Unidade Manual", expanded=False):
         with st.form("form_novo_item", clear_on_submit=True):
-            name = st.text_input("Nome do Produto *", placeholder="Ex: Ventilador de Coluna 6 Pás Mondial")
+            name = st.text_input("Nome do Produto *", placeholder="Ex: Ventilador de Coluna 6 Pas Mondial Turbo")
             brand = st.text_input("Marca", placeholder="Ex: Mondial, Samsung, Brastemp")
             sku = st.text_input("SKU / Código", placeholder="Ex: AT-0019")
             category = st.text_input("Categoria", placeholder="Ex: Eletrodomésticos")
@@ -320,84 +320,79 @@ with st.sidebar:
                 except UnicodeDecodeError:
                     text_data = bytes_data.decode("latin-1")
 
-                first_line = text_data.splitlines()[0] if text_data.splitlines() else ""
-                delimiter = ";" if ";" in first_line else ("," if "," in first_line else "\t")
+                # Detecta delimitador da primeira linha de forma determinística
+                first_line = text_data.strip().splitlines()[0] if text_data.strip().splitlines() else ""
+                sep = ';' if ';' in first_line else (',' if ',' in first_line else '\t')
 
-                imported_df = pd.read_csv(io.StringIO(text_data), sep=delimiter)
-                
-                # Normalização rigorosa dos nomes das colunas
-                imported_df.columns = [
-                    str(c).replace("\ufeff", "").replace('"', '').replace("'", "").strip().lower() 
-                    for c in imported_df.columns
-                ]
-                
-                col_name = next((c for c in imported_df.columns if any(k in c for k in ["prod", "nome", "desc", "item"])), None)
-                col_brand = next((c for c in imported_df.columns if any(k in c for k in ["marc", "fabr", "brand"])), None)
-                col_sku = next((c for c in imported_df.columns if any(k in c for k in ["sku", "cod"])), None)
-                col_cat = next((c for c in imported_df.columns if any(k in c for k in ["cat", "grup", "fam", "setor"])), None)
-                col_tipo = next((c for c in imported_df.columns if "tipo" in c), None)
-                col_vol_esp = next((c for c in imported_df.columns if any(k in c for k in ["vol_esp", "volumes_esperados", "volumes", "vol"])), None)
-                col_pecas_falt = next((c for c in imported_df.columns if any(k in c for k in ["pecas", "peças", "acessorios", "acessórios"])), None)
-                col_vol_falt = next((c for c in imported_df.columns if any(k in c for k in ["vol_falt", "volumes_faltando"])), None)
+                imported_df = pd.read_csv(io.StringIO(text_data), sep=sep, dtype=str)
+                imported_df.columns = [str(c).replace("\ufeff", "").strip().lower() for c in imported_df.columns]
 
-                if col_name:
+                # Mapeamento exato de colunas
+                def get_val(row, *col_names):
+                    for name in col_names:
+                        if name in row and pd.notna(row[name]):
+                            val = str(row[name]).strip()
+                            if val.lower() != "nan":
+                                return val
+                    return ""
+
+                if "produto" in imported_df.columns or "nome" in imported_df.columns:
                     total_units_created = 0
                     for _, row in imported_df.iterrows():
-                        p_name = str(row[col_name]).strip()
-                        if p_name and p_name != "nan":
-                            p_brand = str(row[col_brand]).strip() if col_brand and pd.notna(row[col_brand]) else ""
-                            p_sku = str(row[col_sku]).strip() if col_sku and pd.notna(row[col_sku]) else ""
-                            p_cat = str(row[col_cat]).strip() if col_cat and pd.notna(row[col_cat]) else ""
-                            
-                            p_tipo = "Outro"
-                            if col_tipo and pd.notna(row[col_tipo]):
-                                t_val = str(row[col_tipo]).capitalize()
-                                if t_val in TIPOS_LIST:
-                                    p_tipo = t_val
-                            elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
-                                p_tipo = "Eletro"
-                            elif any(k in p_name.lower() for k in ["guarda-roupa", "mesa", "sofá", "cama", "estante", "cômoda", "rack", "armário", "cadeira", "escrivaninha", "colchão", "base", "cozinha"]):
-                                p_tipo = "Móvel"
+                        p_name = get_val(row, "produto", "nome", "descricao", "item")
+                        if not p_name:
+                            continue
 
-                            # Volumes esperados
-                            v_esp = None
-                            if p_tipo == "Móvel":
-                                if col_vol_esp and pd.notna(row[col_vol_esp]):
-                                    try:
-                                        v_esp = int(float(str(row[col_vol_esp])))
-                                    except:
-                                        v_esp = 4
-                                else:
-                                    v_esp = 4
-                            elif p_tipo == "Eletro":
-                                v_esp = 1
+                        p_brand = get_val(row, "marca", "fabricante", "brand")
+                        p_sku = get_val(row, "sku", "codigo", "código", "cod")
+                        p_cat = get_val(row, "categoria", "grupo", "setor")
+                        
+                        # Tipo
+                        p_tipo_raw = get_val(row, "tipo").capitalize()
+                        if p_tipo_raw in TIPOS_LIST:
+                            p_tipo = p_tipo_raw
+                        elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
+                            p_tipo = "Eletro"
+                        else:
+                            p_tipo = "Móvel"
 
-                            p_falt = str(row[col_pecas_falt]).strip() if col_pecas_falt and pd.notna(row[col_pecas_falt]) else ""
-                            v_falt = str(row[col_vol_falt]).strip() if col_vol_falt and pd.notna(row[col_vol_falt]) else ""
+                        # Volumes esperados
+                        v_esp_raw = get_val(row, "volumes_esperados", "volumes", "vol_esp")
+                        if p_tipo == "Eletro":
+                            v_esp = 1
+                        else:
+                            try:
+                                v_esp = int(float(v_esp_raw)) if v_esp_raw else 4
+                            except:
+                                v_esp = 4
 
-                            # Define status inicial inteligente
+                        p_falt = get_val(row, "pecas_faltando", "peças_faltando", "pecas", "acessorios")
+                        v_falt = get_val(row, "volumes_faltando", "vol_faltando")
+
+                        # Status inicial
+                        if p_falt or v_falt:
+                            init_status = "Incompleto"
+                        else:
                             init_status = "A conferir"
-                            if p_falt or v_falt:
-                                init_status = "Incompleto"
 
-                            add_single_unit(
-                                name=p_name,
-                                brand=p_brand,
-                                sku=p_sku,
-                                category=p_cat,
-                                tipo=p_tipo,
-                                status=init_status,
-                                pecas_faltando=p_falt if p_tipo == "Eletro" else "",
-                                volumes_esperados=v_esp,
-                                volumes_faltando=v_falt if p_tipo == "Móvel" else "",
-                                note="Importado da planilha do Auditor"
-                            )
-                            total_units_created += 1
+                        add_single_unit(
+                            name=p_name,
+                            brand=p_brand,
+                            sku=p_sku,
+                            category=p_cat,
+                            tipo=p_tipo,
+                            status=init_status,
+                            pecas_faltando=p_falt if p_tipo == "Eletro" else "",
+                            volumes_esperados=v_esp,
+                            volumes_faltando=v_falt if p_tipo == "Móvel" else "",
+                            note="Importado da planilha do Auditor"
+                        )
+                        total_units_created += 1
 
                     st.success(f"{total_units_created} unidades importadas com sucesso!")
                     st.rerun()
                 else:
-                    st.error("Coluna de nome do produto não encontrada no CSV.")
+                    st.error("Coluna 'produto' não encontrada no arquivo CSV.")
             except Exception as e:
                 st.error(f"Erro ao processar CSV: {e}")
 
@@ -438,14 +433,20 @@ st.caption(f"Exibindo {len(df_view)} unidade(s) física(s)")
 
 # --- CARDS UNITÁRIOS ---
 if df_view.empty:
-    st.info("Nenhuma unidade física cadastrada ou encontrada com os filtros selecionados.")
+    st.info("Nenhuma unidade física cadastrada. Utilize o menu lateral para cadastrar ou importar.")
 else:
     for _, row in df_view.iterrows():
         with st.container():
             c1, c2, c3 = st.columns([5, 3, 1])
             with c1:
                 brand_badge = f'<span class="badge-brand">{row["brand"]}</span>' if row["brand"] else ""
-                type_badge = f'<span class="badge-type">{row["tipo"]} (1 Vol.)</span>' if row["tipo"] == "Eletro" else f'<span class="badge-type">{row["tipo"]} ({row["volumes_esperados"] or 1} Vols de Fábrica)</span>'
+                
+                if row["tipo"] == "Eletro":
+                    type_badge = '<span class="badge-type">Eletro (1 Vol.)</span>'
+                else:
+                    v_count = row["volumes_esperados"] if row["volumes_esperados"] else 1
+                    type_badge = f'<span class="badge-type">{row["tipo"]} ({v_count} Vols)</span>'
+
                 card_title_html = (
                     f'<div class="unit-title">'
                     f'{row["name"]}'
@@ -461,7 +462,7 @@ else:
                 if row["tipo"] == "Eletro" and row["pecas_faltando"]:
                     st.warning(f"⚠️ **Peças/Acessórios Faltando:** {row['pecas_faltando']}")
                 elif row["tipo"] == "Móvel" and (row["volumes_faltando"] or (row["volumes_esperados"] and row["volumes_esperados"] > 1)):
-                    msg = f"⚠️ **Volumes do Móvel/Base:** {row['volumes_esperados']} volumes esperados"
+                    msg = f"⚠️ **Volumes do Móvel/Base:** {row['volumes_esperados']} volumes de fábrica"
                     if row["volumes_faltando"]:
                         msg += f" · **Faltando:** {row['volumes_faltando']}"
                     st.warning(msg)
