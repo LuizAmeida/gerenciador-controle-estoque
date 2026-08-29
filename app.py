@@ -14,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Injeção de CSS para recriar o tema Dark Industrial idêntico ao HTML original
 st.markdown("""<style>
 .stApp {
     background-color: #1c1f22;
@@ -93,17 +92,17 @@ st.markdown("""<style>
     gap: 8px;
     flex-wrap: wrap;
 }
-.badge-unit {
-    background: #2b2f34;
+.badge-brand {
+    background: #1c1f22;
     border: 1px solid #3a3f45;
     color: #f5b400;
     font-size: 11px;
     padding: 2px 7px;
     border-radius: 3px;
-    font-weight: bold;
+    font-weight: 700;
 }
-.badge-brand {
-    background: #1c1f22;
+.badge-type {
+    background: #2b2f34;
     border: 1px solid #3a3f45;
     color: #9aa0a6;
     font-size: 11px;
@@ -117,7 +116,7 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ==========================================
-# BANCO DE DADOS (100% UNITÁRIO COM MARCA)
+# BANCO DE DADOS (100% UNITÁRIO)
 # ==========================================
 DB_NAME = "estoque_unitario_at.db"
 
@@ -132,18 +131,12 @@ def init_db():
             sku TEXT,
             category TEXT,
             tipo TEXT,
-            unit_label TEXT,
             status TEXT NOT NULL,
             pecas_faltando TEXT,
             volumes_esperados INTEGER,
             volumes_faltando TEXT
         )
     """)
-    try:
-        c.execute("ALTER TABLE items ADD COLUMN brand TEXT")
-    except sqlite3.OperationalError:
-        pass
-
     c.execute("""
         CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,7 +170,7 @@ STATUS_LIST = list(STATUS_CONFIG.keys())
 TIPOS_LIST = ["Eletro", "Móvel", "Outro"]
 
 # ==========================================
-# OPERAÇÕES DE BANCO DE DADOS
+# OPERAÇÕES CRUD
 # ==========================================
 def get_items_df():
     conn = sqlite3.connect(DB_NAME)
@@ -191,13 +184,13 @@ def get_history(item_id):
     conn.close()
     return df
 
-def add_single_unit(name, brand, sku, category, tipo, unit_label, status, pecas_faltando, volumes_esperados, volumes_faltando, note):
+def add_single_unit(name, brand, sku, category, tipo, status, pecas_faltando, volumes_esperados, volumes_faltando, note):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("""
-        INSERT INTO items (name, brand, sku, category, tipo, unit_label, status, pecas_faltando, volumes_esperados, volumes_faltando)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (name, brand, sku, category, tipo, unit_label, status, pecas_faltando, volumes_esperados, volumes_faltando))
+        INSERT INTO items (name, brand, sku, category, tipo, status, pecas_faltando, volumes_esperados, volumes_faltando)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (name, brand, sku, category, tipo, status, pecas_faltando, volumes_esperados, volumes_faltando))
     item_id = c.lastrowid
     
     date_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -243,7 +236,6 @@ def clear_all_units():
 # ==========================================
 # INTERFACE PRINCIPAL
 # ==========================================
-# Header Personalizado (sem indentação para evitar quebra em markdown)
 header_html = (
     '<div class="header-box">'
     '<div>'
@@ -257,7 +249,7 @@ st.markdown(header_html, unsafe_allow_html=True)
 
 df_items = get_items_df()
 
-# Grid de Métricas (construção em string contínua limpa)
+# Grid de Métricas
 tiles = []
 for st_name, meta in STATUS_CONFIG.items():
     count = len(df_items[df_items["status"] == st_name]) if not df_items.empty else 0
@@ -278,12 +270,11 @@ with st.sidebar:
     
     with st.expander("➕ Cadastrar Unidade Manual", expanded=False):
         with st.form("form_novo_item", clear_on_submit=True):
-            name = st.text_input("Nome Detalhado do Produto *", placeholder="Ex: Ventilador de Coluna 6 Pás Mondial")
+            name = st.text_input("Nome do Produto *", placeholder="Ex: Ventilador de Coluna 6 Pás Mondial")
             brand = st.text_input("Marca", placeholder="Ex: Mondial, Samsung, Brastemp")
             sku = st.text_input("SKU / Código", placeholder="Ex: AT-0019")
             category = st.text_input("Categoria", placeholder="Ex: Eletrodomésticos")
             tipo = st.selectbox("Tipo de Item", TIPOS_LIST)
-            qty_input = st.number_input("Quantidade de Unidades Físicas", min_value=1, value=1, step=1)
             status = st.selectbox("Status Inicial", STATUS_LIST, index=0)
             
             pecas_faltando = ""
@@ -291,32 +282,29 @@ with st.sidebar:
             volumes_faltando = ""
             
             if tipo == "Eletro":
-                pecas_faltando = st.text_input("Peças Faltando", placeholder="Ex: falta cabo de força")
+                pecas_faltando = st.text_input("Peças/Acessórios Faltando", placeholder="Ex: falta cabo de força / controle")
             elif tipo == "Móvel":
-                volumes_esperados = st.number_input("Volumes Esperados", min_value=1, value=1, step=1)
-                volumes_faltando = st.text_input("Volumes Faltando", placeholder="Ex: 2, 4")
+                volumes_esperados = st.number_input("Volumes Esperados de Fábrica", min_value=1, value=4, step=1)
+                volumes_faltando = st.text_input("Volumes Faltando (ex: 2, 4)", placeholder="Ex: 2, 4")
             
             note = st.text_input("Observação Inicial", placeholder="Ex: Recebido da conferência física")
-            submit = st.form_submit_button("Cadastrar Unidade(s)")
+            submit = st.form_submit_button("Cadastrar no Estoque")
             
             if submit:
                 if name.strip():
-                    for i in range(1, int(qty_input) + 1):
-                        label = f"Unidade {i}/{qty_input}" if qty_input > 1 else "Unidade 1/1"
-                        add_single_unit(
-                            name=name.strip(),
-                            brand=brand.strip(),
-                            sku=sku.strip(),
-                            category=category.strip(),
-                            tipo=tipo,
-                            unit_label=label,
-                            status=status,
-                            pecas_faltando=pecas_faltando.strip(),
-                            volumes_esperados=volumes_esperados,
-                            volumes_faltando=volumes_faltando.strip(),
-                            note=note
-                        )
-                    st.success(f"{qty_input} unidade(s) gerada(s) individualmente!")
+                    add_single_unit(
+                        name=name.strip(),
+                        brand=brand.strip(),
+                        sku=sku.strip(),
+                        category=category.strip(),
+                        tipo=tipo,
+                        status=status,
+                        pecas_faltando=pecas_faltando.strip(),
+                        volumes_esperados=volumes_esperados,
+                        volumes_faltando=volumes_faltando.strip(),
+                        note=note
+                    )
+                    st.success("Unidade cadastrada com sucesso!")
                     st.rerun()
                 else:
                     st.error("O campo Nome é obrigatório.")
@@ -324,7 +312,7 @@ with st.sidebar:
     st.markdown("### 📥 Importação de Planilha")
     uploaded_file = st.file_uploader("Subir CSV do Auditor", type=["csv"])
     if uploaded_file is not None:
-        if st.button("Processar Carga Unitária"):
+        if st.button("Processar Carga do Arquivo"):
             try:
                 bytes_data = uploaded_file.getvalue()
                 try:
@@ -333,18 +321,25 @@ with st.sidebar:
                     text_data = bytes_data.decode("latin-1")
 
                 first_line = text_data.splitlines()[0] if text_data.splitlines() else ""
-                delimiter = ";" if ";" in first_line else ","
+                delimiter = ";" if ";" in first_line else ("," if "," in first_line else "\t")
 
                 imported_df = pd.read_csv(io.StringIO(text_data), sep=delimiter)
-                imported_df.columns = [str(c).replace("\ufeff", "").strip().lower() for c in imported_df.columns]
                 
-                col_name = next((c for c in imported_df.columns if c in ["produto", "nome", "descricao", "descrição", "item"]), None)
-                col_brand = next((c for c in imported_df.columns if c in ["marca", "fabricante", "brand"]), None)
-                col_sku = next((c for c in imported_df.columns if c in ["sku", "codigo", "código", "cod", "cód"]), None)
-                col_cat = next((c for c in imported_df.columns if c in ["categoria", "grupo", "familia", "família", "setor"]), None)
-                col_qty = next((c for c in imported_df.columns if c in ["quantidade", "qtd", "qtde", "estoque", "saldo"]), None)
-                col_tipo = next((c for c in imported_df.columns if c in ["tipo"]), None)
+                # Normalização rigorosa dos nomes das colunas
+                imported_df.columns = [
+                    str(c).replace("\ufeff", "").replace('"', '').replace("'", "").strip().lower() 
+                    for c in imported_df.columns
+                ]
                 
+                col_name = next((c for c in imported_df.columns if any(k in c for k in ["prod", "nome", "desc", "item"])), None)
+                col_brand = next((c for c in imported_df.columns if any(k in c for k in ["marc", "fabr", "brand"])), None)
+                col_sku = next((c for c in imported_df.columns if any(k in c for k in ["sku", "cod"])), None)
+                col_cat = next((c for c in imported_df.columns if any(k in c for k in ["cat", "grup", "fam", "setor"])), None)
+                col_tipo = next((c for c in imported_df.columns if "tipo" in c), None)
+                col_vol_esp = next((c for c in imported_df.columns if any(k in c for k in ["vol_esp", "volumes_esperados", "volumes", "vol"])), None)
+                col_pecas_falt = next((c for c in imported_df.columns if any(k in c for k in ["pecas", "peças", "acessorios", "acessórios"])), None)
+                col_vol_falt = next((c for c in imported_df.columns if any(k in c for k in ["vol_falt", "volumes_faltando"])), None)
+
                 if col_name:
                     total_units_created = 0
                     for _, row in imported_df.iterrows():
@@ -359,34 +354,47 @@ with st.sidebar:
                                 t_val = str(row[col_tipo]).capitalize()
                                 if t_val in TIPOS_LIST:
                                     p_tipo = t_val
-                            elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador"]):
+                            elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
                                 p_tipo = "Eletro"
-                            elif any(k in p_name.lower() for k in ["guarda-roupa", "mesa", "sofá", "cama", "estante", "cômoda", "rack", "armário", "cadeira", "escrivaninha"]):
+                            elif any(k in p_name.lower() for k in ["guarda-roupa", "mesa", "sofá", "cama", "estante", "cômoda", "rack", "armário", "cadeira", "escrivaninha", "colchão", "base", "cozinha"]):
                                 p_tipo = "Móvel"
 
-                            try:
-                                p_qty = int(float(str(row[col_qty]).replace(",", "."))) if col_qty and pd.notna(row[col_qty]) else 1
-                            except (ValueError, TypeError):
-                                p_qty = 1
-                            
-                            for u_idx in range(1, max(1, p_qty) + 1):
-                                u_label = f"Unidade {u_idx}/{p_qty}" if p_qty > 1 else "Unidade 1/1"
-                                add_single_unit(
-                                    name=p_name,
-                                    brand=p_brand,
-                                    sku=p_sku,
-                                    category=p_cat,
-                                    tipo=p_tipo,
-                                    unit_label=u_label,
-                                    status="A conferir",
-                                    pecas_faltando="",
-                                    volumes_esperados=None,
-                                    volumes_faltando="",
-                                    note="Importado da planilha do Auditor — aguardando triagem física"
-                                )
-                                total_units_created += 1
+                            # Volumes esperados
+                            v_esp = None
+                            if p_tipo == "Móvel":
+                                if col_vol_esp and pd.notna(row[col_vol_esp]):
+                                    try:
+                                        v_esp = int(float(str(row[col_vol_esp])))
+                                    except:
+                                        v_esp = 4
+                                else:
+                                    v_esp = 4
+                            elif p_tipo == "Eletro":
+                                v_esp = 1
 
-                    st.success(f"{total_units_created} unidades físicas importadas com sucesso!")
+                            p_falt = str(row[col_pecas_falt]).strip() if col_pecas_falt and pd.notna(row[col_pecas_falt]) else ""
+                            v_falt = str(row[col_vol_falt]).strip() if col_vol_falt and pd.notna(row[col_vol_falt]) else ""
+
+                            # Define status inicial inteligente
+                            init_status = "A conferir"
+                            if p_falt or v_falt:
+                                init_status = "Incompleto"
+
+                            add_single_unit(
+                                name=p_name,
+                                brand=p_brand,
+                                sku=p_sku,
+                                category=p_cat,
+                                tipo=p_tipo,
+                                status=init_status,
+                                pecas_faltando=p_falt if p_tipo == "Eletro" else "",
+                                volumes_esperados=v_esp,
+                                volumes_faltando=v_falt if p_tipo == "Móvel" else "",
+                                note="Importado da planilha do Auditor"
+                            )
+                            total_units_created += 1
+
+                    st.success(f"{total_units_created} unidades importadas com sucesso!")
                     st.rerun()
                 else:
                     st.error("Coluna de nome do produto não encontrada no CSV.")
@@ -409,7 +417,7 @@ with st.sidebar:
 # --- FILTROS E PESQUISA ---
 f_col1, f_col2 = st.columns([2.5, 1.5])
 with f_col1:
-    query = st.text_input("🔍 Buscar por nome, marca, SKU ou identificador", placeholder="Ex: Mondial, Samsung, AT-0019, Unidade 2...")
+    query = st.text_input("🔍 Buscar por nome, marca, SKU ou categoria", placeholder="Ex: Mondial, Samsung, AT-0019, Geladeira...")
 with f_col2:
     filtro_status = st.selectbox("Filtrar por Status", ["Todos"] + STATUS_LIST)
 
@@ -423,8 +431,7 @@ if not df_view.empty:
             df_view["name"].str.lower().str.contains(q, na=False) |
             df_view["brand"].fillna("").str.lower().str.contains(q, na=False) |
             df_view["sku"].fillna("").str.lower().str.contains(q, na=False) |
-            df_view["category"].fillna("").str.lower().str.contains(q, na=False) |
-            df_view["unit_label"].fillna("").str.lower().str.contains(q, na=False)
+            df_view["category"].fillna("").str.lower().str.contains(q, na=False)
         ]
 
 st.caption(f"Exibindo {len(df_view)} unidade(s) física(s)")
@@ -438,22 +445,26 @@ else:
             c1, c2, c3 = st.columns([5, 3, 1])
             with c1:
                 brand_badge = f'<span class="badge-brand">{row["brand"]}</span>' if row["brand"] else ""
+                type_badge = f'<span class="badge-type">{row["tipo"]} (1 Vol.)</span>' if row["tipo"] == "Eletro" else f'<span class="badge-type">{row["tipo"]} ({row["volumes_esperados"] or 1} Vols de Fábrica)</span>'
                 card_title_html = (
                     f'<div class="unit-title">'
                     f'{row["name"]}'
-                    f'<span class="badge-unit">{row["unit_label"] or "Unidade Física"}</span>'
                     f'{brand_badge}'
+                    f'{type_badge}'
                     f'</div>'
                 )
                 st.markdown(card_title_html, unsafe_allow_html=True)
                 
-                detalhes = f"**ID:** `#{row['id']}` | **SKU:** {row['sku'] or 'S/N'} | **Categoria:** {row['category'] or 'Geral'} | **Tipo:** {row['tipo']}"
+                detalhes = f"**ID:** `#{row['id']}` | **SKU:** {row['sku'] or 'S/N'} | **Categoria:** {row['category'] or 'Geral'}"
                 st.write(detalhes)
                 
                 if row["tipo"] == "Eletro" and row["pecas_faltando"]:
-                    st.warning(f"⚠️ **Peças Faltando:** {row['pecas_faltando']}")
-                elif row["tipo"] == "Móvel" and (row["volumes_faltando"] or row["volumes_esperados"]):
-                    st.warning(f"⚠️ **Volumes:** Esperados: {row['volumes_esperados'] or '-'} | Faltando: {row['volumes_faltando'] or 'Nenhum'}")
+                    st.warning(f"⚠️ **Peças/Acessórios Faltando:** {row['pecas_faltando']}")
+                elif row["tipo"] == "Móvel" and (row["volumes_faltando"] or (row["volumes_esperados"] and row["volumes_esperados"] > 1)):
+                    msg = f"⚠️ **Volumes do Móvel/Base:** {row['volumes_esperados']} volumes esperados"
+                    if row["volumes_faltando"]:
+                        msg += f" · **Faltando:** {row['volumes_faltando']}"
+                    st.warning(msg)
 
             with c2:
                 current_idx = STATUS_LIST.index(row["status"]) if row["status"] in STATUS_LIST else 0
@@ -482,8 +493,8 @@ else:
                     delete_unit(row["id"])
                     st.rerun()
 
-            # Painel expansível de Detalhes
-            with st.expander("🛠️ Registrar Avaria, Peças ou Alterar Especificações"):
+            # Painel expansível de Edição
+            with st.expander("🛠️ Registrar Avaria, Peças/Volumes ou Detalhes"):
                 with st.form(key=f"form_unit_{row['id']}"):
                     e1, e2 = st.columns(2)
                     with e1:
@@ -495,15 +506,17 @@ else:
                     e_ve = None
                     e_vf = ""
                     if e_tipo == "Eletro":
-                        e_pf = st.text_input("Peças / Acessórios Faltando", value=str(row["pecas_faltando"] or ""), key=f"epf_{row['id']}")
+                        st.caption("ℹ️ Eletro possui 1 único volume. Indique se falta algum acessório/peça:")
+                        e_pf = st.text_input("Peças / Acessórios Faltando", value=str(row["pecas_faltando"] or ""), key=f"epf_{row['id']}", placeholder="Ex: falta controle remoto e cabo de força")
                     elif e_tipo == "Móvel":
+                        st.caption("ℹ️ Móveis e Bases/Colchões possuem múltiplos volumes de fábrica:")
                         m1, m2 = st.columns(2)
                         with m1:
-                            e_ve = st.number_input("Volumes Esperados", min_value=1, value=int(row["volumes_esperados"] or 1), key=f"eve_{row['id']}")
+                            e_ve = st.number_input("Volumes Esperados", min_value=1, value=int(row["volumes_esperados"] or 4), key=f"eve_{row['id']}")
                         with m2:
-                            e_vf = st.text_input("Volumes Faltando (ex: 1, 3)", value=str(row["volumes_faltando"] or ""), key=f"evf_{row['id']}")
+                            e_vf = st.text_input("Volumes Faltando (ex: 2, 4)", value=str(row["volumes_faltando"] or ""), key=f"evf_{row['id']}")
 
-                    e_note = st.text_input("Observação / Motivo", placeholder="Ex: Identificada avaria na lateral durante conferência", key=f"enote_{row['id']}")
+                    e_note = st.text_input("Observação / Motivo da Triagem", placeholder="Ex: Identificada avaria na lateral durante conferência", key=f"enote_{row['id']}")
                     
                     if st.form_submit_button("Salvar Alterações Desta Peça"):
                         update_unit_details(
