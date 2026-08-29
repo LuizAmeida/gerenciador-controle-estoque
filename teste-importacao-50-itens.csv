@@ -1,51 +1,51 @@
-produto;marca;sku;categoria;tipo;volumes_esperados;pecas_faltando;volumes_faltando
-Smart TV 50 pol 4K UHD Crystal;Samsung;AT-0001;Eletrônicos;Eletro;1;;
-Smart TV 55 pol OLED 4K AI ThinQ;LG;AT-0002;Eletrônicos;Eletro;1;Falta controle Smart Magic e cabo de força;
-Geladeira Frost Free 400L Inox Duplex;Brastemp;AT-0003;Eletrodomésticos;Eletro;1;;
-Geladeira Side by Side 501L Frost Free;Electrolux;AT-0004;Eletrodomésticos;Eletro;1;;
-Fogão 5 Bocas com Tripla Chama e Timer;Dako;AT-0005;Eletrodomésticos;Eletro;1;;
-Fogão 4 Bocas Acendimento Automático;Consul;AT-0006;Eletrodomésticos;Eletro;1;Falta grade e queimador rápido;
-Micro-ondas 30L Espelhado Função Grill;Midea;AT-0007;Eletrodomésticos;Eletro;1;Falta prato giratório de vidro;
-Micro-ondas 34L Inox com Painel Touch;Electrolux;AT-0008;Eletrodomésticos;Eletro;1;;
-Ar-condicionado Split Inverter 12000 BTU;Gree;AT-0009;Climatização;Eletro;1;;
-Ar-condicionado Split Hi-Wall 18000 BTU;Springer Midea;AT-0010;Climatização;Eletro;1;Falta controle remoto e suporte;
-Máquina de Lavar 12kg Turbo Economia;Brastemp;AT-0011;Eletrodomésticos;Eletro;1;;
-Lava e Seca 11kg EcoBubble Titanium;Samsung;AT-0012;Eletrodomésticos;Eletro;1;;
-Notebook 15.6 pol Core i5 8GB SSD 512GB;Dell;AT-0013;Informática;Eletro;1;Falta fonte carregador original;
-Notebook Vivobook 15 Ryzen 5 16GB SSD;Asus;AT-0014;Informática;Eletro;1;;
-Som Torre Bluetooth 500W Power Sound;JBL;AT-0015;Eletrônicos;Eletro;1;;
-Mini System 1000W RMS Multi Bluetooth;Sony;AT-0016;Eletrônicos;Eletro;1;Falta antena FM e controle;
-Smartphone Galaxy A54 5G 128GB 8GB RAM;Samsung;AT-0017;Telefonia;Eletro;1;Falta cabo USB-C na caixa;
-Smartphone Redmi Note 13 256GB;Xiaomi;AT-0018;Telefonia;Eletro;1;;
-Ventilador de Coluna 6 Pas Mondial Turbo;Mondial;AT-0019;Eletrodomésticos;Eletro;1;;
-Ventilador de Mesa 40cm Silence Force;Arno;AT-0020;Eletrodomésticos;Eletro;1;Falta helice frontal;
-Fritadeira Air Fryer 4L Digital Touch;Philips Walita;AT-0021;Eletroportáteis;Eletro;1;;
-Cafeteira Expresso Automatica em Inox;Oster;AT-0022;Eletroportáteis;Eletro;1;Falta cachimbo porta filtro;
-Aspirador de Po Vertical Sem Fio 2 em 1;Electrolux;AT-0023;Eletroportáteis;Eletro;1;;
-Panela de Pressao Eletrica Digital 5L;Mondial;AT-0024;Eletroportáteis;Eletro;1;Falta copo medidor e espatula;
-Liquidificador Turbo 1200W Jarra Vidro;Oster;AT-0025;Eletroportáteis;Eletro;1;;
-Batedeira Planetaria 8 Velocidades 500W;Philco;AT-0026;Eletroportáteis;Eletro;1;Falta batedor raquete;
-Ferro de Passar a Vapor Ceramica;Black+Decker;AT-0027;Eletroportáteis;Eletro;1;;
-Sanduicheira e Grill Inox Press 2 em 1;Britânia;AT-0028;Eletroportáteis;Eletro;1;;
-Caixa de Som Amplificada Portatil 300W;Amvox;AT-0029;Eletrônicos;Eletro;1;;
-Monitor Gamer 24 pol Curvo 144Hz Full HD;AOC;AT-0030;Informática;Eletro;1;Falta cabo DisplayPort;
-Impressora Multifuncional Tanque Tinta;Epson;AT-0031;Informática;Eletro;1;;
-Purificador de Agua por Compressor;IBBL;AT-0032;Eletrodomésticos;Eletro;1;Falta mangueira e bico conector;
-Guarda-roupa Casal 6 Portas com Espelho Munique;Madesa;AT-0033;Móveis;Móvel;7;;3 e 6
-Guarda-roupa Casal 8 Portas 4 Gavetas Paris;Santos Andirá;AT-0034;Móveis;Móvel;8;;2 e 5 e 8
-Guarda-roupa Solteiro 4 Portas 2 Gavetas Lucca;Henn;AT-0035;Móveis;Móvel;4;;
-Conjunto Sala de Jantar Mesa e 6 Cadeiras Valência;Kappesberg;AT-0036;Móveis;Móvel;6;;4 e 5
-Mesa de Jantar 8 Lugares Tampo de Madeira Macica;Mobly;AT-0037;Móveis;Móvel;5;;2
-Sofá Retrátil e Reclinável 3 Lugares 2.50m Bipartido;Rifletti;AT-0038;Móveis;Móvel;2;;2
-Sofá de Canto Modular 6 Lugares com Chaise;Linoforte;AT-0039;Móveis;Móvel;4;;3
-Cama Box Queen Size com Baú Bipartido;Ortobom;AT-0040;Móveis;Móvel;2;;1
-Cama Box Casal com Cabeceira Estofada e Baú;Castor;AT-0041;Móveis;Móvel;3;;
-Base Box King Size Bipartida 193x203cm;Ortobom;AT-0042;Móveis;Móvel;2;;2
-Estante Home Theater para TV ate 75 pol Madri;Colibri;AT-0043;Móveis;Móvel;5;;3 e 5
-Rack para TV ate 75 pol com Painel Ripado e LED;Artely;AT-0044;Móveis;Móvel;3;;1
-Cômoda 6 Gavetas Grandes e 2 Portas com Espelho;Santos Andirá;AT-0045;Móveis;Móvel;4;;4
-Armário de Cozinha Completo Modular 10 Portas 3 Gavetas;Itatiaia;AT-0046;Móveis;Móvel;6;;2 e 6
-Cozinha Compacta 6 Portas 2 Gavetas com Nicho;Madesa;AT-0047;Móveis;Móvel;4;;
-Escrivaninha Mesa Gamer em L com Prateleiras;Politorno;AT-0048;Móveis;Móvel;3;;3
-Conjunto Escritório Mesa Diretoria e Armário Baixo;Kappesberg;AT-0049;Móveis;Móvel;5;;1 e 4
-Colchão Queen Size Molas Pocket Viscoelástico Duplo;Emma;AT-0050;Colchões e Bases;Móvel;2;;
+produto;marca;sku;categoria;tipo;volumes_total
+Smart TV 50 pol 4K UHD Crystal;Samsung;AT-0001;Eletrônicos;Eletro;1
+Smart TV 55 pol OLED 4K AI ThinQ;LG;AT-0002;Eletrônicos;Eletro;1
+Geladeira Frost Free 400L Inox Duplex;Brastemp;AT-0003;Eletrodomésticos;Eletro;1
+Geladeira Side by Side 501L Frost Free;Electrolux;AT-0004;Eletrodomésticos;Eletro;1
+Fogão 5 Bocas com Tripla Chama e Timer;Dako;AT-0005;Eletrodomésticos;Eletro;1
+Fogão 4 Bocas Acendimento Automático;Consul;AT-0006;Eletrodomésticos;Eletro;1
+Micro-ondas 30L Espelhado Função Grill;Midea;AT-0007;Eletrodomésticos;Eletro;1
+Micro-ondas 34L Inox com Painel Touch;Electrolux;AT-0008;Eletrodomésticos;Eletro;1
+Ar-condicionado Split Inverter 12000 BTU;Gree;AT-0009;Climatização;Eletro;1
+Ar-condicionado Split Hi-Wall 18000 BTU;Springer Midea;AT-0010;Climatização;Eletro;1
+Máquina de Lavar 12kg Turbo Economia;Brastemp;AT-0011;Eletrodomésticos;Eletro;1
+Lava e Seca 11kg EcoBubble Titanium;Samsung;AT-0012;Eletrodomésticos;Eletro;1
+Notebook 15.6 pol Core i5 8GB SSD 512GB;Dell;AT-0013;Informática;Eletro;1
+Notebook Vivobook 15 Ryzen 5 16GB SSD;Asus;AT-0014;Informática;Eletro;1
+Som Torre Bluetooth 500W Power Sound;JBL;AT-0015;Eletrônicos;Eletro;1
+Mini System 1000W RMS Multi Bluetooth;Sony;AT-0016;Eletrônicos;Eletro;1
+Smartphone Galaxy A54 5G 128GB 8GB RAM;Samsung;AT-0017;Telefonia;Eletro;1
+Smartphone Redmi Note 13 256GB;Xiaomi;AT-0018;Telefonia;Eletro;1
+Ventilador de Coluna 6 Pas Mondial Turbo;Mondial;AT-0019;Eletrodomésticos;Eletro;1
+Ventilador de Mesa 40cm Silence Force;Arno;AT-0020;Eletrodomésticos;Eletro;1
+Fritadeira Air Fryer 4L Digital Touch;Philips Walita;AT-0021;Eletroportáteis;Eletro;1
+Cafeteira Expresso Automatica em Inox;Oster;AT-0022;Eletroportáteis;Eletro;1
+Aspirador de Po Vertical Sem Fio 2 em 1;Electrolux;AT-0023;Eletroportáteis;Eletro;1
+Panela de Pressao Eletrica Digital 5L;Mondial;AT-0024;Eletroportáteis;Eletro;1
+Liquidificador Turbo 1200W Jarra Vidro;Oster;AT-0025;Eletroportáteis;Eletro;1
+Batedeira Planetaria 8 Velocidades 500W;Philco;AT-0026;Eletroportáteis;Eletro;1
+Ferro de Passar a Vapor Ceramica;Black+Decker;AT-0027;Eletroportáteis;Eletro;1
+Sanduicheira e Grill Inox Press 2 em 1;Britânia;AT-0028;Eletroportáteis;Eletro;1
+Caixa de Som Amplificada Portatil 300W;Amvox;AT-0029;Eletrônicos;Eletro;1
+Monitor Gamer 24 pol Curvo 144Hz Full HD;AOC;AT-0030;Informática;Eletro;1
+Impressora Multifuncional Tanque Tinta;Epson;AT-0031;Informática;Eletro;1
+Purificador de Agua por Compressor;IBBL;AT-0032;Eletrodomésticos;Eletro;1
+Guarda-roupa Casal 6 Portas com Espelho Munique;Madesa;AT-0033;Móveis;Móvel;7
+Guarda-roupa Casal 8 Portas 4 Gavetas Paris;Santos Andirá;AT-0034;Móveis;Móvel;8
+Guarda-roupa Solteiro 4 Portas 2 Gavetas Lucca;Henn;AT-0035;Móveis;Móvel;4
+Conjunto Sala de Jantar Mesa e 6 Cadeiras Valência;Kappesberg;AT-0036;Móveis;Móvel;6
+Mesa de Jantar 8 Lugares Tampo de Madeira Macica;Mobly;AT-0037;Móveis;Móvel;5
+Sofá Retrátil e Reclinável 3 Lugares 2.50m Bipartido;Rifletti;AT-0038;Móveis;Móvel;2
+Sofá de Canto Modular 6 Lugares com Chaise;Linoforte;AT-0039;Móveis;Móvel;4
+Cama Box Queen Size com Baú Bipartido;Ortobom;AT-0040;Móveis;Móvel;2
+Cama Box Casal com Cabeceira Estofada e Baú;Castor;AT-0041;Móveis;Móvel;3
+Base Box King Size Bipartida 193x203cm;Ortobom;AT-0042;Móveis;Móvel;2
+Estante Home Theater para TV ate 75 pol Madri;Colibri;AT-0043;Móveis;Móvel;5
+Rack para TV ate 75 pol com Painel Ripado e LED;Artely;AT-0044;Móveis;Móvel;3
+Cômoda 6 Gavetas Grandes e 2 Portas com Espelho;Santos Andirá;AT-0045;Móveis;Móvel;4
+Armário de Cozinha Completo Modular 10 Portas 3 Gavetas;Itatiaia;AT-0046;Móveis;Móvel;6
+Cozinha Compacta 6 Portas 2 Gavetas com Nicho;Madesa;AT-0047;Móveis;Móvel;4
+Escrivaninha Mesa Gamer em L com Prateleiras;Politorno;AT-0048;Móveis;Móvel;3
+Conjunto Escritório Mesa Diretoria e Armário Baixo;Kappesberg;AT-0049;Móveis;Móvel;5
+Colchão Queen Size Molas Pocket Viscoelástico Duplo;Emma;AT-0050;Colchões e Bases;Móvel;2
