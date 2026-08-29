@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import datetime
+import csv
 import io
 
 # ==========================================
@@ -14,6 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Estilização Dark Industrial completa
 st.markdown("""<style>
 .stApp {
     background-color: #1c1f22;
@@ -23,7 +25,7 @@ st.markdown("""<style>
 .header-box {
     border-bottom: 3px solid #f5b400;
     padding-bottom: 14px;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
@@ -33,7 +35,7 @@ st.markdown("""<style>
 .header-title {
     font-family: 'Segoe UI', 'Arial Narrow', Arial, sans-serif;
     text-transform: uppercase;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 700;
     letter-spacing: .03em;
     margin: 0;
@@ -41,7 +43,7 @@ st.markdown("""<style>
 }
 .header-sub {
     color: #9aa0a6;
-    font-size: 12px;
+    font-size: 11px;
     margin-top: 4px;
 }
 .header-badge {
@@ -56,32 +58,40 @@ st.markdown("""<style>
 }
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
-    gap: 8px;
-    margin-bottom: 22px;
+    grid-template-columns: repeat(8, minmax(80px, 1fr));
+    gap: 6px;
+    margin-bottom: 20px;
+}
+@media (max-width: 900px) {
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 .stat-tile {
     background: #24282c;
     border: 1px solid #3a3f45;
     border-radius: 4px;
-    padding: 10px 12px;
+    padding: 8px 10px;
     text-align: left;
 }
 .stat-count {
     display: block;
     font-family: 'Segoe UI', Arial, sans-serif;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     line-height: 1;
     color: #edeeee;
 }
 .stat-label {
     display: block;
-    font-size: 10px;
+    font-size: 9px;
     color: #9aa0a6;
-    margin-top: 5px;
+    margin-top: 4px;
     text-transform: uppercase;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .unit-title {
     font-size: 15px;
@@ -249,7 +259,7 @@ st.markdown(header_html, unsafe_allow_html=True)
 
 df_items = get_items_df()
 
-# Grid de Métricas
+# Grid de Métricas (8 status perfeitamente distribuídos)
 tiles = []
 for st_name, meta in STATUS_CONFIG.items():
     count = len(df_items[df_items["status"] == st_name]) if not df_items.empty else 0
@@ -320,79 +330,95 @@ with st.sidebar:
                 except UnicodeDecodeError:
                     text_data = bytes_data.decode("latin-1")
 
-                # Detecta delimitador da primeira linha de forma determinística
-                first_line = text_data.strip().splitlines()[0] if text_data.strip().splitlines() else ""
-                sep = ';' if ';' in first_line else (',' if ',' in first_line else '\t')
-
-                imported_df = pd.read_csv(io.StringIO(text_data), sep=sep, dtype=str)
-                imported_df.columns = [str(c).replace("\ufeff", "").strip().lower() for c in imported_df.columns]
-
-                # Mapeamento exato de colunas
-                def get_val(row, *col_names):
-                    for name in col_names:
-                        if name in row and pd.notna(row[name]):
-                            val = str(row[name]).strip()
-                            if val.lower() != "nan":
-                                return val
-                    return ""
-
-                if "produto" in imported_df.columns or "nome" in imported_df.columns:
-                    total_units_created = 0
-                    for _, row in imported_df.iterrows():
-                        p_name = get_val(row, "produto", "nome", "descricao", "item")
-                        if not p_name:
-                            continue
-
-                        p_brand = get_val(row, "marca", "fabricante", "brand")
-                        p_sku = get_val(row, "sku", "codigo", "código", "cod")
-                        p_cat = get_val(row, "categoria", "grupo", "setor")
-                        
-                        # Tipo
-                        p_tipo_raw = get_val(row, "tipo").capitalize()
-                        if p_tipo_raw in TIPOS_LIST:
-                            p_tipo = p_tipo_raw
-                        elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
-                            p_tipo = "Eletro"
-                        else:
-                            p_tipo = "Móvel"
-
-                        # Volumes esperados
-                        v_esp_raw = get_val(row, "volumes_esperados", "volumes", "vol_esp")
-                        if p_tipo == "Eletro":
-                            v_esp = 1
-                        else:
-                            try:
-                                v_esp = int(float(v_esp_raw)) if v_esp_raw else 4
-                            except:
-                                v_esp = 4
-
-                        p_falt = get_val(row, "pecas_faltando", "peças_faltando", "pecas", "acessorios")
-                        v_falt = get_val(row, "volumes_faltando", "vol_faltando")
-
-                        # Status inicial
-                        if p_falt or v_falt:
-                            init_status = "Incompleto"
-                        else:
-                            init_status = "A conferir"
-
-                        add_single_unit(
-                            name=p_name,
-                            brand=p_brand,
-                            sku=p_sku,
-                            category=p_cat,
-                            tipo=p_tipo,
-                            status=init_status,
-                            pecas_faltando=p_falt if p_tipo == "Eletro" else "",
-                            volumes_esperados=v_esp,
-                            volumes_faltando=v_falt if p_tipo == "Móvel" else "",
-                            note="Importado da planilha do Auditor"
-                        )
-                        total_units_created += 1
-
-                    st.success(f"{total_units_created} unidades importadas com sucesso!")
-                    st.rerun()
+                # Limpeza e separação de linhas
+                text_clean = text_data.replace("\ufeff", "").strip()
+                lines = [l for l in text_clean.splitlines() if l.strip()]
+                
+                if not lines:
+                    st.error("O arquivo CSV está vazio.")
                 else:
-                    st.error("Coluna 'produto' não encontrada no arquivo CSV.")
+                    # Detecta delimitador da primeira linha
+                    sep = ';' if ';' in lines[0] else (',' if ',' in lines[0] else '\t')
+                    reader = csv.reader(lines, delimiter=sep)
+                    rows = list(reader)
+                    
+                    if len(rows) < 2:
+                        st.error("Nenhuma linha de dados encontrada no arquivo CSV.")
+                    else:
+                        header = [c.strip().lower() for c in rows[0]]
+                        
+                        # Mapeamento por índice de coluna (ou fallback posicional)
+                        def find_idx(keywords, default_pos):
+                            for i, col in enumerate(header):
+                                if any(k in col for k in keywords):
+                                    return i
+                            return default_pos if default_pos < len(header) else -1
+
+                        idx_name = find_idx(["prod", "nome", "desc", "item"], 0)
+                        idx_brand = find_idx(["marc", "fabr", "brand"], 1)
+                        idx_sku = find_idx(["sku", "cod"], 2)
+                        idx_cat = find_idx(["cat", "grup", "fam", "setor"], 3)
+                        idx_tipo = find_idx(["tipo"], 4)
+                        idx_vesp = find_idx(["vol_esp", "volumes_esperados", "volumes", "vol"], 5)
+                        idx_pfalt = find_idx(["pecas", "peças", "acess"], 6)
+                        idx_vfalt = find_idx(["vol_falt", "volumes_faltando"], 7)
+
+                        total_units_created = 0
+                        for row in rows[1:]:
+                            if not row or not any(row):
+                                continue
+                            
+                            p_name = row[idx_name].strip() if idx_name != -1 and idx_name < len(row) else ""
+                            if not p_name or p_name.lower() == "nan":
+                                continue
+
+                            p_brand = row[idx_brand].strip() if idx_brand != -1 and idx_brand < len(row) else ""
+                            p_sku = row[idx_sku].strip() if idx_sku != -1 and idx_sku < len(row) else ""
+                            p_cat = row[idx_cat].strip() if idx_cat != -1 and idx_cat < len(row) else ""
+                            
+                            # Tipo
+                            p_tipo_raw = row[idx_tipo].strip().capitalize() if idx_tipo != -1 and idx_tipo < len(row) else ""
+                            if p_tipo_raw in TIPOS_LIST:
+                                p_tipo = p_tipo_raw
+                            elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
+                                p_tipo = "Eletro"
+                            else:
+                                p_tipo = "Móvel"
+
+                            # Volumes esperados
+                            v_esp = None
+                            if p_tipo == "Eletro":
+                                v_esp = 1
+                            else:
+                                v_raw = row[idx_vesp].strip() if idx_vesp != -1 and idx_vesp < len(row) else ""
+                                try:
+                                    v_esp = int(float(v_raw)) if v_raw else 4
+                                except:
+                                    v_esp = 4
+
+                            p_falt = row[idx_pfalt].strip() if idx_pfalt != -1 and idx_pfalt < len(row) else ""
+                            v_falt = row[idx_vfalt].strip() if idx_vfalt != -1 and idx_vfalt < len(row) else ""
+
+                            # Status
+                            init_status = "Incompleto" if (p_falt or v_falt) else "A conferir"
+
+                            add_single_unit(
+                                name=p_name,
+                                brand=p_brand,
+                                sku=p_sku,
+                                category=p_cat,
+                                tipo=p_tipo,
+                                status=init_status,
+                                pecas_faltando=p_falt if p_tipo == "Eletro" else "",
+                                volumes_esperados=v_esp,
+                                volumes_faltando=v_falt if p_tipo == "Móvel" else "",
+                                note="Importado da planilha do Auditor"
+                            )
+                            total_units_created += 1
+
+                        st.success(f"{total_units_created} unidades importadas com sucesso!")
+                        st.rerun()
+
             except Exception as e:
                 st.error(f"Erro ao processar CSV: {e}")
 
