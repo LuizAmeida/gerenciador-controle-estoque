@@ -1,51 +1,51 @@
 Produto;Marca;SKU;Categoria;Tipo;Quantidade
-"Smart TV 50"" 4K UHD Crystal";Samsung;AT-0001;Eletrônicos;Eletro;2
+"Smart TV 50"" 4K UHD Crystal";Samsung;AT-0001;Eletrônicos;Eletro;1
 "Smart TV 55"" OLED 4K AI ThinQ";LG;AT-0002;Eletrônicos;Eletro;1
-Geladeira Frost Free 400L Inox Duplex;Brastemp;AT-0003;Eletrodomésticos;Eletro;2
+Geladeira Frost Free 400L Inox Duplex;Brastemp;AT-0003;Eletrodomésticos;Eletro;1
 Geladeira Side by Side 501L Frost Free;Electrolux;AT-0004;Eletrodomésticos;Eletro;1
-Fogão 5 Bocas com Tripla Chama e Timer;Dako;AT-0005;Eletrodomésticos;Eletro;2
-Fogão 4 Bocas Acendimento Automático;Consul;AT-0006;Eletrodomésticos;Eletro;3
-Micro-ondas 30L Espelhado Função Grill;Midea;AT-0007;Eletrodomésticos;Eletro;2
-Micro-ondas 34L Inox com Painel Touch;Electrolux;AT-0008;Eletrodomésticos;Eletro;2
-Ar-condicionado Split Inverter 12000 BTU Frio;Gree;AT-0009;Climatização;Eletro;2
+Fogão 5 Bocas com Tripla Chama e Timer;Dako;AT-0005;Eletrodomésticos;Eletro;1
+Fogão 4 Bocas Acendimento Automático;Consul;AT-0006;Eletrodomésticos;Eletro;1
+Micro-ondas 30L Espelhado Função Grill;Midea;AT-0007;Eletrodomésticos;Eletro;1
+Micro-ondas 34L Inox com Painel Touch;Electrolux;AT-0008;Eletrodomésticos;Eletro;1
+Ar-condicionado Split Inverter 12000 BTU;Gree;AT-0009;Climatização;Eletro;1
 Ar-condicionado Split Hi-Wall 18000 BTU;Springer Midea;AT-0010;Climatização;Eletro;1
-Máquina de Lavar 12kg com Turbo Economia;Brastemp;AT-0011;Eletrodomésticos;Eletro;2
+Máquina de Lavar 12kg Turbo Economia;Brastemp;AT-0011;Eletrodomésticos;Eletro;1
 Lava e Seca 11kg EcoBubble Titanium;Samsung;AT-0012;Eletrodomésticos;Eletro;1
-"Notebook 15.6"" Core i5 8GB SSD 512GB";Dell;AT-0013;Informática;Eletro;2
+"Notebook 15.6"" Core i5 8GB SSD 512GB";Dell;AT-0013;Informática;Eletro;1
 Notebook Vivobook 15 Ryzen 5 16GB SSD;Asus;AT-0014;Informática;Eletro;1
-Som Torre Bluetooth 500W Power Sound;JBL;AT-0015;Eletrônicos;Eletro;2
+Som Torre Bluetooth 500W Power Sound;JBL;AT-0015;Eletrônicos;Eletro;1
 Mini System 1000W RMS Multi Bluetooth;Sony;AT-0016;Eletrônicos;Eletro;1
-Smartphone Galaxy A54 5G 128GB 8GB RAM;Samsung;AT-0017;Telefonia;Eletro;3
-Smartphone Redmi Note 13 256GB;Xiaomi;AT-0018;Telefonia;Eletro;2
-Ventilador de Coluna 6 Pás Turbo Silêncio 40cm;Mondial;AT-0019;Eletrodomésticos;Eletro;4
-Ventilador de Mesa 40cm Silence Force;Arno;AT-0020;Eletrodomésticos;Eletro;3
-Fritadeira Air Fryer 4L Digital Touch;Philips Walita;AT-0021;Eletroportáteis;Eletro;3
-Cafeteira Expresso Automática em Inox;Oster;AT-0022;Eletroportáteis;Eletro;2
-Aspirador de Pó Vertical Sem Fio 2 em 1;Electrolux;AT-0023;Eletroportáteis;Eletro;2
-Guarda-roupa Casal 6 Portas com Espelho Munique;Madesa;AT-0024;Móveis;Móvel;1
-Guarda-roupa Solteiro 4 Portas 2 Gavetas Lucca;Henn;AT-0025;Móveis;Móvel;1
-Conjunto Sala de Jantar Mesa 6 Cadeiras Valência;Kappesberg;AT-0026;Móveis;Móvel;1
-Mesa de Jantar 4 Lugares com Tampo de Vidro;Mobly;AT-0027;Móveis;Móvel;1
-Sofá Retrátil e Reclinável 3 Lugares 2.30m;Rifletti;AT-0028;Móveis;Móvel;1
-Sofá de Canto 5 Lugares em Suede Cinza;Linoforte;AT-0029;Móveis;Móvel;1
-Cama Box Queen Size com Baú Bipartido;Ortobom;AT-0030;Móveis;Móvel;1
-Cama Box Casal com Cabeceira Estofada;Castor;AT-0031;Móveis;Móvel;1
-"Estante Home Theater para TV até 65"" Madri";Colibri;AT-0032;Móveis;Móvel;1
-"Rack para TV até 75"" com Painel Ripado e LED";Artely;AT-0033;Móveis;Móvel;1
-Cômoda 5 Gavetas e 1 Porta com Espelho;Santos Andirá;AT-0034;Móveis;Móvel;1
-Armário de Cozinha Completo 8 Portas 2 Gavetas;Itatiaia;AT-0035;Móveis;Móvel;1
-Escrivaninha Mesa Gamer com Suporte para CPU;Politorno;AT-0036;Móveis;Móvel;2
-Cadeira de Escritório Ergonômica Presidente Mesh;Comfy;AT-0037;Móveis;Móvel;2
-Colchão Casal Molas Ensacadas Pocket Premium;Ortobom;AT-0038;Colchões;Outro;2
-Colchão Solteiro Espuma D33 Pró-Vida;Castor;AT-0039;Colchões;Outro;2
-Colchão Queen Size Molas Pocket Viscoelástico;Emma;AT-0040;Colchões;Outro;1
-Travesseiro Ortopédico Nasa Viscoelástico Duoflex;Duoflex;AT-0041;Cama e Banho;Outro;4
-Panela de Pressão Elétrica Digital 5L;Mondial;AT-0042;Eletroportáteis;Eletro;2
-Liquidificador Turbo 1200W com Jarra de Vidro;Oster;AT-0043;Eletroportáteis;Eletro;3
-Batedeira Planetária 8 Velocidades 500W;Philco;AT-0044;Eletroportáteis;Eletro;2
-Ferro de Passar a Vapor Cerâmica Antiaderente;Black+Decker;AT-0045;Eletroportáteis;Eletro;3
-Sanduicheira e Grill Inox Press 2 em 1;Britânia;AT-0046;Eletroportáteis;Eletro;3
-Caixa de Som Amplificada Portátil 300W com Led;Amvox;AT-0047;Eletrônicos;Eletro;2
-"Monitor Gamer 24"" Curvo 144Hz Full HD";AOC;AT-0048;Informática;Eletro;1
-Impressora Multifuncional Tanque de Tinta Wi-Fi;Epson;AT-0049;Informática;Eletro;1
-Purificador de Água Refrigerado por Compressor;IBBL;AT-0050;Eletrodomésticos;Eletro;2
+Smartphone Galaxy A54 5G 128GB 8GB RAM;Samsung;AT-0017;Telefonia;Eletro;1
+Smartphone Redmi Note 13 256GB;Xiaomi;AT-0018;Telefonia;Eletro;1
+Ventilador de Coluna 6 Pás Turbo Mondial;Mondial;AT-0019;Eletrodomésticos;Eletro;1
+Ventilador de Mesa 40cm Silence Force;Arno;AT-0020;Eletrodomésticos;Eletro;1
+Fritadeira Air Fryer 4L Digital Touch;Philips Walita;AT-0021;Eletroportáteis;Eletro;1
+Cafeteira Expresso Automática em Inox;Oster;AT-0022;Eletroportáteis;Eletro;1
+Aspirador de Pó Vertical Sem Fio 2 em 1;Electrolux;AT-0023;Eletroportáteis;Eletro;1
+Panela de Pressão Elétrica Digital 5L;Mondial;AT-0024;Eletroportáteis;Eletro;1
+Liquidificador Turbo 1200W Jarra Vidro;Oster;AT-0025;Eletroportáteis;Eletro;1
+Batedeira Planetária 8 Velocidades 500W;Philco;AT-0026;Eletroportáteis;Eletro;1
+Ferro de Passar a Vapor Cerâmica;Black+Decker;AT-0027;Eletroportáteis;Eletro;1
+Sanduicheira e Grill Inox Press 2 em 1;Britânia;AT-0028;Eletroportáteis;Eletro;1
+Caixa de Som Amplificada Portátil 300W;Amvox;AT-0029;Eletrônicos;Eletro;1
+"Monitor Gamer 24"" Curvo 144Hz Full HD";AOC;AT-0030;Informática;Eletro;1
+Impressora Multifuncional Tanque de Tinta;Epson;AT-0031;Informática;Eletro;1
+Purificador de Água por Compressor;IBBL;AT-0032;Eletrodomésticos;Eletro;1
+Guarda-roupa Casal 6 Portas com Espelho Munique;Madesa;AT-0033;Móveis;Móvel;1
+Guarda-roupa Solteiro 4 Portas 2 Gavetas Lucca;Henn;AT-0034;Móveis;Móvel;1
+Conjunto Sala de Jantar Mesa 6 Cadeiras Valência;Kappesberg;AT-0035;Móveis;Móvel;1
+Mesa de Jantar 4 Lugares Tampo de Vidro;Mobly;AT-0036;Móveis;Móvel;1
+Sofá Retrátil e Reclinável 3 Lugares 2.30m;Rifletti;AT-0037;Móveis;Móvel;1
+Sofá de Canto 5 Lugares em Suede Cinza;Linoforte;AT-0038;Móveis;Móvel;1
+Cama Box Queen Size com Baú Bipartido;Ortobom;AT-0039;Móveis;Móvel;1
+Cama Box Casal com Cabeceira Estofada;Castor;AT-0040;Móveis;Móvel;1
+Base Box Casal Bipartida para Colchão;Ortobom;AT-0041;Móveis;Móvel;1
+"Estante Home Theater para TV até 65"" Madri";Colibri;AT-0042;Móveis;Móvel;1
+"Rack para TV até 75"" Painel Ripado e LED";Artely;AT-0043;Móveis;Móvel;1
+Cômoda 5 Gavetas e 1 Porta com Espelho;Santos Andirá;AT-0044;Móveis;Móvel;1
+Armário de Cozinha Completo 8 Portas 2 Gavetas;Itatiaia;AT-0045;Móveis;Móvel;1
+Escrivaninha Mesa Gamer com Nichos;Politorno;AT-0046;Móveis;Móvel;1
+Cadeira de Escritório Presidente Mesh;Comfy;AT-0047;Móveis;Móvel;1
+Colchão Casal Molas Ensacadas Pocket Premium;Ortobom;AT-0048;Colchões e Bases;Móvel;1
+Colchão Solteiro Espuma D33 Pró-Vida;Castor;AT-0049;Colchões e Bases;Móvel;1
+Colchão Queen Size Molas Pocket Viscoelástico;Emma;AT-0050;Colchões e Bases;Móvel;1
