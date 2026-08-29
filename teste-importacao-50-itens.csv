@@ -1,6 +1,6 @@
 Produto;Marca;SKU;Categoria;Tipo;Volumes_Esperados;Pecas_Faltando;Volumes_Faltando
-"Smart TV 50"" 4K UHD Crystal";Samsung;AT-0001;Eletrônicos;Eletro;1;;
-"Smart TV 55"" OLED 4K AI ThinQ";LG;AT-0002;Eletrônicos;Eletro;1;Falta controle Smart Magic e cabo de força;
+Smart TV 50"" 4K UHD Crystal";Samsung;AT-0001;Eletrônicos;Eletro;1;;
+Smart TV 55"" OLED 4K AI ThinQ";LG;AT-0002;Eletrônicos;Eletro;1;Falta controle Smart Magic e cabo de força;
 Geladeira Frost Free 400L Inox Duplex;Brastemp;AT-0003;Eletrodomésticos;Eletro;1;;
 Geladeira Side by Side 501L Frost Free;Electrolux;AT-0004;Eletrodomésticos;Eletro;1;;
 Fogão 5 Bocas com Tripla Chama e Timer;Dako;AT-0005;Eletrodomésticos;Eletro;1;;
