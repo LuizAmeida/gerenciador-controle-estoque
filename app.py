@@ -8,7 +8,7 @@ import io
 # CONFIGURAÇÃO DA PÁGINA E ESTILIZAÇÃO CSS
 # ==========================================
 st.set_page_config(
-    page_title="Controle de Estoque Unitário - AT",
+    page_title="Controle de Estoque - AT",
     page_icon="📦",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -31,7 +31,7 @@ st.markdown("""<style>
     gap: 10px;
 }
 .header-title {
-    font-family: 'Segoe UI', 'Arial Narrow', Arial, sans-serif;
+    font-family: 'Segoe UI', Arial, sans-serif;
     text-transform: uppercase;
     font-size: 24px;
     font-weight: 700;
@@ -92,7 +92,7 @@ st.markdown("""<style>
     text-overflow: ellipsis;
 }
 .unit-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     color: #edeeee;
     display: flex;
@@ -124,9 +124,9 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ==========================================
-# BANCO DE DADOS (100% UNITÁRIO)
+# BANCO DE DADOS (SIMPLIFICADO POR PRODUTO)
 # ==========================================
-DB_NAME = "estoque_unitario_at.db"
+DB_NAME = "estoque_at_direto.db"
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
@@ -136,13 +136,15 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             brand TEXT,
-            sku TEXT,
+            sku TEXT UNIQUE,
             category TEXT,
             tipo TEXT,
             status TEXT NOT NULL,
-            pecas_faltando TEXT,
-            volumes_esperados INTEGER,
-            volumes_faltando TEXT
+            volumes_total INTEGER DEFAULT 1,
+            volumes_faltando TEXT,
+            volumes_avariados TEXT,
+            volumes_sobrando TEXT,
+            pecas_faltando TEXT
         )
     """)
     c.execute("""
@@ -192,40 +194,53 @@ def get_history(item_id):
     conn.close()
     return df
 
-def add_single_unit(name, brand, sku, category, tipo, status, pecas_faltando, volumes_esperados, volumes_faltando, note):
+def upsert_item(name, brand, sku, category, tipo, status, volumes_total, volumes_faltando, volumes_avariados, volumes_sobrando, pecas_faltando, note):
+    """Insere ou atualiza o item caso o SKU já exista, evitando duplicatas."""
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""
-        INSERT INTO items (name, brand, sku, category, tipo, status, pecas_faltando, volumes_esperados, volumes_faltando)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (name, brand, sku, category, tipo, status, pecas_faltando, volumes_esperados, volumes_faltando))
-    item_id = c.lastrowid
     
+    sku_val = sku.strip() if sku.strip() else f"GEN-{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+    
+    c.execute("SELECT id FROM items WHERE sku = ?", (sku_val,))
+    existing = c.fetchone()
     date_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
-    note_final = note if note.strip() else "Unidade cadastrada"
-    c.execute("INSERT INTO history (item_id, status, date, note) VALUES (?, ?, ?, ?)",
-              (item_id, status, date_str, note_final))
+    
+    if existing:
+        item_id = existing[0]
+        c.execute("""
+            UPDATE items 
+            SET name = ?, brand = ?, category = ?, tipo = ?, status = ?,
+                volumes_total = ?, volumes_faltando = ?, volumes_avariados = ?,
+                volumes_sobrando = ?, pecas_faltando = ?
+            WHERE id = ?
+        """, (name, brand, category, tipo, status, volumes_total, volumes_faltando, volumes_avariados, volumes_sobrando, pecas_faltando, item_id))
+        
+        c.execute("INSERT INTO history (item_id, status, date, note) VALUES (?, ?, ?, ?)",
+                  (item_id, status, date_str, note or "Item atualizado"))
+    else:
+        c.execute("""
+            INSERT INTO items (name, brand, sku, category, tipo, status, volumes_total, volumes_faltando, volumes_avariados, volumes_sobrando, pecas_faltando)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (name, brand, sku_val, category, tipo, status, volumes_total, volumes_faltando, volumes_avariados, volumes_sobrando, pecas_faltando))
+        item_id = c.lastrowid
+        c.execute("INSERT INTO history (item_id, status, date, note) VALUES (?, ?, ?, ?)",
+                  (item_id, status, date_str, note or "Item cadastrado"))
+        
     conn.commit()
     conn.close()
     return item_id
 
-def update_unit_details(item_id, new_status, new_tipo, pecas_faltando, volumes_esperados, volumes_faltando, note):
+def update_status_quick(item_id, new_status):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""
-        UPDATE items 
-        SET status = ?, tipo = ?, pecas_faltando = ?, volumes_esperados = ?, volumes_faltando = ?
-        WHERE id = ?
-    """, (new_status, new_tipo, pecas_faltando, volumes_esperados, volumes_faltando, item_id))
-    
+    c.execute("UPDATE items SET status = ? WHERE id = ?", (new_status, item_id))
     date_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
-    note_final = note.strip() if note.strip() else f"Status atualizado para '{new_status}'"
     c.execute("INSERT INTO history (item_id, status, date, note) VALUES (?, ?, ?, ?)",
-              (item_id, new_status, date_str, note_final))
+              (item_id, new_status, date_str, f"Status alterado para {new_status}"))
     conn.commit()
     conn.close()
 
-def delete_unit(item_id):
+def delete_item(item_id):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("DELETE FROM history WHERE item_id = ?", (item_id,))
@@ -233,7 +248,7 @@ def delete_unit(item_id):
     conn.commit()
     conn.close()
 
-def clear_all_units():
+def clear_all_data():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("DELETE FROM history")
@@ -250,14 +265,14 @@ header_html = (
     '<h1 class="header-title">Controle de Estoque — Assistência Técnica</h1>'
     '<div class="header-sub">disponível · em separação · em falta · sobrando · incompleto · avariado · assistência técnica</div>'
     '</div>'
-    '<span class="header-badge">Gestão Unitária · Físico Real</span>'
+    '<span class="header-badge">Gestão de Estoque Físico</span>'
     '</div>'
 )
 st.markdown(header_html, unsafe_allow_html=True)
 
 df_items = get_items_df()
 
-# Grid de Métricas
+# Grid de Métricas (8 status)
 tiles = []
 for st_name, meta in STATUS_CONFIG.items():
     count = len(df_items[df_items["status"] == st_name]) if not df_items.empty else 0
@@ -276,143 +291,154 @@ st.markdown(stats_html, unsafe_allow_html=True)
 with st.sidebar:
     st.markdown("### ⚙️ Painel de Operações")
     
-    with st.expander("➕ Cadastrar Unidade Manual", expanded=False):
+    with st.expander("➕ Cadastrar Novo Item", expanded=False):
         with st.form("form_novo_item", clear_on_submit=True):
-            name = st.text_input("Nome do Produto *", placeholder="Ex: Ventilador de Coluna 6 Pas Mondial Turbo")
-            brand = st.text_input("Marca", placeholder="Ex: Mondial, Samsung, Brastemp")
-            sku = st.text_input("SKU / Código", placeholder="Ex: AT-0019")
-            category = st.text_input("Categoria", placeholder="Ex: Eletrodomésticos")
-            tipo = st.selectbox("Tipo de Item", TIPOS_LIST)
+            name = st.text_input("Nome do Produto *", placeholder="Ex: Guarda-roupa 6 Portas Munique")
+            brand = st.text_input("Marca", placeholder="Ex: Madesa, Samsung, Brastemp")
+            sku = st.text_input("SKU / Código *", placeholder="Ex: AT-0033")
+            category = st.text_input("Categoria", placeholder="Ex: Móveis")
+            tipo = st.selectbox("Tipo de Item", TIPOS_LIST, index=1)
             status = st.selectbox("Status Inicial", STATUS_LIST, index=0)
             
-            pecas_faltando = ""
-            volumes_esperados = None
-            volumes_faltando = ""
+            v_total = 1
+            v_falt = ""
+            v_avar = ""
+            v_sobr = ""
+            p_falt = ""
             
-            if tipo == "Eletro":
-                pecas_faltando = st.text_input("Peças/Acessórios Faltando", placeholder="Ex: falta cabo de força / controle")
-            elif tipo == "Móvel":
-                volumes_esperados = st.number_input("Volumes Esperados de Fábrica", min_value=1, value=4, step=1)
-                volumes_faltando = st.text_input("Volumes Faltando (ex: 2, 4)", placeholder="Ex: 2, 4")
+            if tipo == "Móvel":
+                st.caption("📦 Configuração de Volumes do Móvel:")
+                v_total = st.number_input("Total de Volumes de Fábrica", min_value=1, value=6, step=1)
+                v_falt = st.text_input("Volumes Faltando", placeholder="Ex: Vol 3, Vol 6")
+                v_avar = st.text_input("Volumes Avariados", placeholder="Ex: Vol 2")
+                v_sobr = st.text_input("Volumes Sobrando", placeholder="Ex: Vol 1")
+            elif tipo == "Eletro":
+                st.caption("⚡ Eletros possuem 1 volume de fábrica:")
+                p_falt = st.text_input("Peças / Acessórios com problema", placeholder="Ex: Falta controle e cabo de força")
             
-            note = st.text_input("Observação Inicial", placeholder="Ex: Recebido da conferência física")
-            submit = st.form_submit_button("Cadastrar no Estoque")
+            note = st.text_input("Observação Inicial", placeholder="Ex: Recebido da conferência")
+            submit = st.form_submit_button("Cadastrar Produto")
             
             if submit:
                 if name.strip():
-                    add_single_unit(
+                    upsert_item(
                         name=name.strip(),
                         brand=brand.strip(),
                         sku=sku.strip(),
                         category=category.strip(),
                         tipo=tipo,
                         status=status,
-                        pecas_faltando=pecas_faltando.strip(),
-                        volumes_esperados=volumes_esperados,
-                        volumes_faltando=volumes_faltando.strip(),
-                        note=note
+                        volumes_total=v_total if tipo == "Móvel" else 1,
+                        volumes_faltando=v_falt.strip(),
+                        volumes_avariados=v_avar.strip(),
+                        volumes_sobrando=v_sobr.strip(),
+                        pecas_faltando=p_falt.strip() if tipo == "Eletro" else "",
+                        note=note.strip()
                     )
-                    st.success("Unidade cadastrada com sucesso!")
+                    st.success("Item cadastrado com sucesso!")
                     st.rerun()
                 else:
-                    st.error("O campo Nome é obrigatório.")
+                    st.error("O campo Nome do Produto é obrigatório.")
 
     st.markdown("### 📥 Importação de Planilha")
     uploaded_file = st.file_uploader("Subir CSV do Auditor", type=["csv"])
-    if uploaded_file is not None:
-        if st.button("Processar Carga do Arquivo"):
+    
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        btn_importar = st.button("Processar CSV")
+    with col_btn2:
+        substituir_tudo = st.checkbox("Substituir base atual", value=False, help="Se marcado, limpa o estoque antes de importar")
+    
+    if uploaded_file is not None and btn_importar:
+        try:
+            bytes_data = uploaded_file.getvalue()
             try:
-                bytes_data = uploaded_file.getvalue()
-                try:
-                    text_data = bytes_data.decode("utf-8-sig")
-                except UnicodeDecodeError:
-                    text_data = bytes_data.decode("latin-1")
+                text_data = bytes_data.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                text_data = bytes_data.decode("latin-1")
 
-                # Limpeza rigorosa de quebras de linha e espaços
-                lines = [l.strip() for l in text_data.splitlines() if l.strip()]
+            lines = [l.strip() for l in text_data.splitlines() if l.strip()]
+            
+            if len(lines) < 2:
+                st.error("O arquivo CSV precisa ter cabeçalho e dados.")
+            else:
+                if substituir_tudo:
+                    clear_all_data()
+
+                delimiter = ';' if ';' in lines[0] else (',' if ',' in lines[0] else '\t')
                 
-                if len(lines) < 2:
-                    st.error("O arquivo CSV precisa ter ao menos o cabeçalho e 1 linha de dados.")
-                else:
-                    # Detecta delimitador da primeira linha
-                    delimiter = ';' if ';' in lines[0] else (',' if ',' in lines[0] else '\t')
+                count_importados = 0
+                for line in lines[1:]:
+                    parts = [p.strip().replace('"', '') for p in line.split(delimiter)]
+                    if not parts or not parts[0]:
+                        continue
                     
-                    total_units_created = 0
-                    for line_str in lines[1:]:
-                        # Divide rigorosamente por delimitador
-                        parts = [p.strip().replace('"', '') for p in line_str.split(delimiter)]
-                        if not parts or not parts[0]:
-                            continue
-                        
-                        p_name = parts[0]
-                        if not p_name or p_name.lower() == "nan":
-                            continue
+                    p_name = parts[0]
+                    p_brand = parts[1] if len(parts) > 1 else ""
+                    p_sku = parts[2] if len(parts) > 2 else f"AT-{count_importados+1:04d}"
+                    p_cat = parts[3] if len(parts) > 3 else ""
+                    
+                    # Tipo
+                    p_tipo_raw = parts[4].capitalize() if len(parts) > 4 and parts[4] else ""
+                    if p_tipo_raw in TIPOS_LIST:
+                        p_tipo = p_tipo_raw
+                    elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
+                        p_tipo = "Eletro"
+                    else:
+                        p_tipo = "Móvel"
 
-                        p_brand = parts[1] if len(parts) > 1 else ""
-                        p_sku = parts[2] if len(parts) > 2 else ""
-                        p_cat = parts[3] if len(parts) > 3 else ""
-                        
-                        # Tipo
-                        p_tipo_raw = parts[4].capitalize() if len(parts) > 4 and parts[4] else ""
-                        if p_tipo_raw in TIPOS_LIST:
-                            p_tipo = p_tipo_raw
-                        elif any(k in p_name.lower() for k in ["fogão", "geladeira", "tv", "micro", "ar-condicionado", "notebook", "smartphone", "ventilador", "air fryer", "cafeteira", "aspirador", "liquidificador", "batedeira", "purificador", "som", "lava"]):
-                            p_tipo = "Eletro"
-                        else:
-                            p_tipo = "Móvel"
+                    # Volumes
+                    if p_tipo == "Eletro":
+                        v_tot = 1
+                    else:
+                        try:
+                            v_tot = int(float(parts[5])) if len(parts) > 5 and parts[5] else 6
+                        except:
+                            v_tot = 6
 
-                        # Volumes esperados de fábrica
-                        if p_tipo == "Eletro":
-                            v_esp = 1
-                        else:
-                            v_raw = parts[5] if len(parts) > 5 else ""
-                            try:
-                                v_esp = int(float(v_raw)) if v_raw else 4
-                            except:
-                                v_esp = 4
+                    p_falt = parts[6] if len(parts) > 6 else ""
+                    v_falt = parts[7] if len(parts) > 7 else ""
 
-                        # Peças ou volumes faltando (se vierem na planilha)
-                        p_falt = parts[6] if len(parts) > 6 else ""
-                        v_falt = parts[7] if len(parts) > 7 else ""
+                    # REGRA: Toda importação do Auditor entra estritamente como "A conferir"
+                    upsert_item(
+                        name=p_name,
+                        brand=p_brand,
+                        sku=p_sku,
+                        category=p_cat,
+                        tipo=p_tipo,
+                        status="A conferir",
+                        volumes_total=v_tot,
+                        volumes_faltando=v_falt if p_tipo == "Móvel" else "",
+                        volumes_avariados="",
+                        volumes_sobrando="",
+                        pecas_faltando=p_falt if p_tipo == "Eletro" else "",
+                        note="Importado da planilha do Auditor — aguardando conferência física"
+                    )
+                    count_importados += 1
 
-                        # REGRA PRINCIPAL: Todo item importado entra como "A conferir"
-                        add_single_unit(
-                            name=p_name,
-                            brand=p_brand,
-                            sku=p_sku,
-                            category=p_cat,
-                            tipo=p_tipo,
-                            status="A conferir",
-                            pecas_faltando=p_falt if p_tipo == "Eletro" else "",
-                            volumes_esperados=v_esp,
-                            volumes_faltando=v_falt if p_tipo == "Móvel" else "",
-                            note="Importado da planilha do Auditor — aguardando conferência física"
-                        )
-                        total_units_created += 1
+                st.success(f"{count_importados} produtos processados como 'A conferir' sem duplicatas!")
+                st.rerun()
 
-                    st.success(f"{total_units_created} unidades importadas como 'A conferir' com sucesso!")
-                    st.rerun()
-
-            except Exception as e:
-                st.error(f"Erro ao processar CSV: {e}")
+        except Exception as e:
+            st.error(f"Erro ao processar: {e}")
 
     if not df_items.empty:
         csv_data = df_items.to_csv(index=False).encode('utf-8-sig')
         st.download_button(
             label="⬇️ Exportar Base Completa (CSV)",
             data=csv_data,
-            file_name=f"estoque_unitario_{datetime.date.today()}.csv",
+            file_name=f"estoque_at_{datetime.date.today()}.csv",
             mime="text/csv"
         )
         st.divider()
         if st.button("🚨 Limpar Todo o Banco de Dados"):
-            clear_all_units()
+            clear_all_data()
             st.rerun()
 
 # --- FILTROS E PESQUISA ---
 f_col1, f_col2 = st.columns([2.5, 1.5])
 with f_col1:
-    query = st.text_input("🔍 Buscar por nome, marca, SKU ou categoria", placeholder="Ex: Mondial, Samsung, AT-0019, Geladeira...")
+    query = st.text_input("🔍 Buscar por nome, marca, SKU ou categoria", placeholder="Ex: Mondial, Madesa, AT-0033, Geladeira...")
 with f_col2:
     filtro_status = st.selectbox("Filtrar por Status", ["Todos"] + STATUS_LIST)
 
@@ -429,11 +455,11 @@ if not df_view.empty:
             df_view["category"].fillna("").str.lower().str.contains(q, na=False)
         ]
 
-st.caption(f"Exibindo {len(df_view)} unidade(s) física(s)")
+st.caption(f"Exibindo {len(df_view)} produto(s)")
 
-# --- CARDS UNITÁRIOS ---
+# --- LISTAGEM DOS PRODUTOS ---
 if df_view.empty:
-    st.info("Nenhuma unidade física cadastrada. Utilize o menu lateral para cadastrar ou importar.")
+    st.info("Nenhum item cadastrado ou encontrado. Utilize a barra lateral para importar ou cadastrar.")
 else:
     for _, row in df_view.iterrows():
         with st.container():
@@ -442,10 +468,9 @@ else:
                 brand_badge = f'<span class="badge-brand">{row["brand"]}</span>' if row["brand"] else ""
                 
                 if row["tipo"] == "Eletro":
-                    type_badge = '<span class="badge-type">Eletro (1 Vol.)</span>'
+                    type_badge = '<span class="badge-type">⚡ Eletro (1 Volume)</span>'
                 else:
-                    v_count = row["volumes_esperados"] if row["volumes_esperados"] else 1
-                    type_badge = f'<span class="badge-type">{row["tipo"]} ({v_count} Vols)</span>'
+                    type_badge = f'<span class="badge-type">📦 Móvel ({row["volumes_total"]} Volumes)</span>'
 
                 card_title_html = (
                     f'<div class="unit-title">'
@@ -456,47 +481,45 @@ else:
                 )
                 st.markdown(card_title_html, unsafe_allow_html=True)
                 
-                detalhes = f"**ID:** `#{row['id']}` | **SKU:** {row['sku'] or 'S/N'} | **Categoria:** {row['category'] or 'Geral'}"
+                detalhes = f"**SKU:** `{row['sku']}` | **Categoria:** {row['category'] or 'Geral'}"
                 st.write(detalhes)
                 
-                # Exibição de pendências se houver
+                # Exibição de pendências e apontamentos
                 if row["tipo"] == "Eletro" and row["pecas_faltando"]:
-                    st.warning(f"⚠️ **Peças/Acessórios Faltando:** {row['pecas_faltando']}")
-                elif row["tipo"] == "Móvel" and (row["volumes_faltando"] or (row["volumes_esperados"] and row["volumes_esperados"] > 1)):
-                    msg = f"⚠️ **Volumes de Fábrica:** {row['volumes_esperados']} volumes"
+                    st.warning(f"⚠️ **Peças/Acessórios:** {row['pecas_faltando']}")
+                elif row["tipo"] == "Móvel":
+                    avisos = []
                     if row["volumes_faltando"]:
-                        msg += f" · **Faltando:** {row['volumes_faltando']}"
-                    st.warning(msg)
+                        avisos.append(f"❌ **Faltando:** {row['volumes_faltando']}")
+                    if row["volumes_avariados"]:
+                        avisos.append(f"💥 **Avariado(s):** {row['volumes_avariados']}")
+                    if row["volumes_sobrando"]:
+                        avisos.append(f"➕ **Sobrando:** {row['volumes_sobrando']}")
+                    
+                    if avisos:
+                        st.warning(f"📦 **Apontamento de Volumes (Total: {row['volumes_total']}):** " + " | ".join(avisos))
 
             with c2:
                 current_idx = STATUS_LIST.index(row["status"]) if row["status"] in STATUS_LIST else 0
                 novo_st = st.selectbox(
-                    "Status da Peça",
+                    "Status do Produto",
                     STATUS_LIST,
                     index=current_idx,
                     key=f"status_select_{row['id']}"
                 )
                 if novo_st != row["status"]:
-                    update_unit_details(
-                        item_id=row["id"],
-                        new_status=novo_st,
-                        new_tipo=row["tipo"],
-                        pecas_faltando=row["pecas_faltando"] or "",
-                        volumes_esperados=row["volumes_esperados"],
-                        volumes_faltando=row["volumes_faltando"] or "",
-                        note=f"Status alterado na triagem para {novo_st}"
-                    )
+                    update_status_quick(row["id"], novo_st)
                     st.rerun()
 
             with c3:
                 st.write("")
                 st.write("")
                 if st.button("🗑️ Excluir", key=f"del_btn_{row['id']}"):
-                    delete_unit(row["id"])
+                    delete_item(row["id"])
                     st.rerun()
 
-            # Painel expansível de Edição
-            with st.expander("🛠️ Registrar Avaria, Peças/Volumes ou Detalhes"):
+            # Painel expansível de Apontamento de Volumes e Detalhes
+            with st.expander("🛠️ Apontar Volumes (Faltando/Avariado/Sobrando) ou Peças"):
                 with st.form(key=f"form_unit_{row['id']}"):
                     e1, e2 = st.columns(2)
                     with e1:
@@ -504,33 +527,46 @@ else:
                     with e2:
                         e_st = st.selectbox("Status", STATUS_LIST, index=STATUS_LIST.index(row["status"]) if row["status"] in STATUS_LIST else 0, key=f"es_{row['id']}")
 
-                    e_pf = ""
-                    e_ve = None
-                    e_vf = ""
-                    if e_tipo == "Eletro":
-                        st.caption("ℹ️ Eletro possui 1 único volume. Indique se falta algum acessório/peça:")
-                        e_pf = st.text_input("Peças / Acessórios Faltando", value=str(row["pecas_faltando"] or ""), key=f"epf_{row['id']}", placeholder="Ex: falta controle remoto e cabo de força")
-                    elif e_tipo == "Móvel":
-                        st.caption("ℹ️ Móveis e Bases/Colchões possuem múltiplos volumes de fábrica:")
-                        m1, m2 = st.columns(2)
-                        with m1:
-                            e_ve = st.number_input("Volumes Esperados", min_value=1, value=int(row["volumes_esperados"] or 4), key=f"eve_{row['id']}")
-                        with m2:
-                            e_vf = st.text_input("Volumes Faltando (ex: 2, 4)", value=str(row["volumes_faltando"] or ""), key=f"evf_{row['id']}")
+                    e_vtot = row["volumes_total"] or 1
+                    e_vfalt = row["volumes_faltando"] or ""
+                    e_vavar = row["volumes_avariados"] or ""
+                    e_vsobr = row["volumes_sobrando"] or ""
+                    e_pfalt = row["pecas_faltando"] or ""
 
-                    e_note = st.text_input("Observação / Motivo da Triagem", placeholder="Ex: Identificada avaria na lateral durante conferência", key=f"enote_{row['id']}")
+                    if e_tipo == "Móvel":
+                        st.markdown("##### 📦 Controle de Volumes do Móvel")
+                        e_vtot = st.number_input("Quantidade Total de Volumes de Fábrica", min_value=1, value=int(row["volumes_total"] or 6), key=f"vt_{row['id']}")
+                        
+                        col_m1, col_m2, col_m3 = st.columns(3)
+                        with col_m1:
+                            e_vfalt = st.text_input("Volumes Faltando", value=str(row["volumes_faltando"] or ""), placeholder="Ex: Vol 3, Vol 6", key=f"vf_{row['id']}")
+                        with col_m2:
+                            e_vavar = st.text_input("Volumes Avariados", value=str(row["volumes_avariados"] or ""), placeholder="Ex: Vol 2", key=f"va_{row['id']}")
+                        with col_m3:
+                            e_vsobr = st.text_input("Volumes Sobrando", value=str(row["volumes_sobrando"] or ""), placeholder="Ex: Vol 1", key=f"vs_{row['id']}")
+                    elif e_tipo == "Eletro":
+                        st.markdown("##### ⚡ Controle de Eletro (1 Volume)")
+                        e_vtot = 1
+                        e_pfalt = st.text_input("Peças / Acessórios com problema", value=str(row["pecas_faltando"] or ""), placeholder="Ex: Falta controle remoto / cabo", key=f"pf_{row['id']}")
+
+                    e_note = st.text_input("Observação da Conferência", placeholder="Ex: Caixa do espelho (Vol 3) avariada na descarga", key=f"enote_{row['id']}")
                     
-                    if st.form_submit_button("Salvar Alterações Desta Peça"):
-                        update_unit_details(
-                            item_id=row["id"],
-                            new_status=e_st,
-                            new_tipo=e_tipo,
-                            pecas_faltando=e_pf.strip(),
-                            volumes_esperados=e_ve,
-                            volumes_faltando=e_vf.strip(),
+                    if st.form_submit_button("Salvar Apontamentos"):
+                        upsert_item(
+                            name=row["name"],
+                            brand=row["brand"],
+                            sku=row["sku"],
+                            category=row["category"],
+                            tipo=e_tipo,
+                            status=e_st,
+                            volumes_total=e_vtot,
+                            volumes_faltando=e_vfalt.strip(),
+                            volumes_avariados=e_vavar.strip(),
+                            volumes_sobrando=e_vsobr.strip(),
+                            pecas_faltando=e_pfalt.strip(),
                             note=e_note.strip()
                         )
-                        st.success("Peça física atualizada com sucesso!")
+                        st.success("Apontamentos salvos com sucesso!")
                         st.rerun()
 
             # Histórico
